@@ -35,12 +35,12 @@ ft1 = fr1[2]
 r2  = fr2[0]
 ft2 = fr2[2]
 
-
-plt.plot(r1, ft1,c='r', lw=2, label='model for 450')
-plt.plot(r2, ft2,c='g', lw=2, label='model with 1VGa')
-plt.plot(rex, ftex,c='k', lw = 2, label='exp. data 350')
-plt.legend()
-plt.show()
+#
+# plt.plot(r1, ft1,c='r', lw=2, label='model for 450')
+# plt.plot(r2, ft2,c='g', lw=2, label='model with 1VGa')
+# plt.plot(rex, ftex,c='k', lw = 2, label='exp. data 350')
+# plt.legend()
+# plt.show()
 
 index1 = (np.abs(r1 - 1)).argmin()
 index2 = (np.abs(r1 - 5)).argmin()
