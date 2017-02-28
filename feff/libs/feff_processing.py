@@ -182,8 +182,8 @@ def xftf(k, chi):
     kstep=np.round(1000.*(k[1]-k[0]))/1000.0
     # kstep=0.05
     nfft = 2048
-    k = k
-    chi = chi
+    # k = k
+    # chi = chi
     cchi, win  = xftf_prep(k, chi)
     out = xftf_fast(cchi*win)
     rstep = pi/(kstep*nfft)
