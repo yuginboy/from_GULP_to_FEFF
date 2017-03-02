@@ -32,9 +32,14 @@ class FTR_gulp_to_feff_A_model():
         self.theory_one.label_latex = 'snapshot model'
         self.theory_one.loadSpectrumData()
 
-        self.theory_one.r_vector = self.theory_one.r_vector
-        self.theory_one.ftr_vector = self.theory_one.ftr_vector
+        self.set_ideal_curve_params()
 
+
+    def set_ideal_curve_params(self):
+        self.theory_one.ideal_curve_ftr = self.experiment.ftr_vector
+        self.theory_one.ideal_curve_r =   self.experiment.r_vector
+        self.theory_one.ideal_curve_k =   self.experiment.k_vector
+        self.theory_one.ideal_curve_chi = self.experiment.chi_vector
 
     def get_name_of_model_from_fileName(self):
         modelName = os.path.split(os.path.split(os.path.dirname(self.theory_one.pathToLoadDataFile))[0])[1]
@@ -145,3 +150,4 @@ if __name__ == '__main__':
     a.updateInfo()
     print(a.get_R_factor())
     a.plotSpectra_chi_k()
+    a.plotSpectra_FTR_r()
