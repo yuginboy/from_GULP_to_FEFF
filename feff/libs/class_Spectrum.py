@@ -32,14 +32,33 @@ class Spectrum (object):
         # path to the stored ASCII data file:
         self.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '350.chik')
 
-        # region for R-factor calculation in Angstroms:
-        self.r_factor_region = np.array([1, 5])
-        # array of ideal values for R-factor calculation:
+        # Temp region for R-factor calculation in Angstroms:
+        self.r_factor_region = np.array([0, 0])
+        # region for R(FTR)-factor calculation in Angstroms:
+        self.r_factor_region_ftr = np.array([1, 5])
+        # region for R(chi)-factor calculation in Angstroms^-1:
+        self.r_factor_region_chi_k = np.array([0.5, 10])
+
+        # Temp array of ideal values for R-factor calculation:
         self.ideal_curve_x = []
         self.ideal_curve_y = []
-        # array of probing values for R-factor calculation:
+        # Temp array of probing values for R-factor calculation:
         self.probe_curve_x = []
         self.probe_curve_y = []
+
+        # array of ideal values for R(FTR)-factor calculation:
+        self.ideal_curve_r = []
+        self.ideal_curve_ftr = []
+        # array of probing values for R(FTR)-factor calculation:
+        self.probe_curve_r = []
+        self.probe_curve_ftr = []
+
+        # array of ideal values for R(chi)-factor calculation:
+        self.ideal_curve_k = []
+        self.ideal_curve_chi = []
+        # array of probing values for R(chi)-factor calculation:
+        self.probe_curve_k = []
+        self.probe_curve_chi = []
 
 
         # the coefficient of intensities scaling in FTR dimention:
@@ -58,16 +77,31 @@ class Spectrum (object):
 
     def plotOneSpectrum_chi_k(self):
         plt.plot(self.k_vector, self.chi_vector, lw=2, label=self.label_latex)
+        plt.ylabel('$\chi(k)$', fontsize=20, fontweight='bold')
+        plt.xlabel('$k$ $[\AA^{-1}]$', fontsize=20, fontweight='bold')
+
+    def plotTwoSpectrum_chi_k(self):
+        plt.plot(self.k_vector, self.chi_vector, lw=2, label=self.label_latex)
+        plt.plot(self.ideal_curve_k, self.ideal_curve_chi, lw=2, label=self.label_latex_ideal_curve)
+        plt.fill_between(self.probe_curve_k, self.probe_curve_k*0, self.probe_curve_chi,
+        alpha=0.2, edgecolor='#1B2ACC', facecolor='#089FFF',
+        linewidth=0.5, linestyle='dashdot', antialiased=True, label = '$R_{factor}$ region')
+        plt.ylabel('$\chi(k)$', fontsize=20, fontweight='bold')
+        plt.xlabel('$k$ $[\AA^{-1}]$', fontsize=20, fontweight='bold')
 
     def plotOneSpectrum_FTR_r(self):
         plt.plot(self.r_vector, self.ftr_vector, lw=2, label=self.label_latex)
+        plt.ylabel('$FT(r)$', fontsize=20, fontweight='bold')
+        plt.xlabel('$r$ $[\AA]$', fontsize=20, fontweight='bold')
 
     def plotTwoSpectrum_FTR_r(self):
         plt.plot(self.r_vector, self.ftr_vector, lw=2, label=self.label_latex)
-        plt.plot(self.ideal_curve_x, self.ideal_curve_y, lw=2, label=self.label_latex_ideal_curve)
-        plt.fill_between(self.probe_curve_x, self.probe_curve_x*0, self.probe_curve_y,
+        plt.plot(self.ideal_curve_r, self.ideal_curve_ftr, lw=2, label=self.label_latex_ideal_curve)
+        plt.fill_between(self.probe_curve_r, self.probe_curve_r*0, self.probe_curve_ftr,
         alpha=0.2, edgecolor='#1B2ACC', facecolor='#089FFF',
         linewidth=0.5, linestyle='dashdot', antialiased=True, label = '$R_{factor}$ region')
+        plt.ylabel('$FT(r)$', fontsize=20, fontweight='bold')
+        plt.xlabel('$r$ $[\AA]$', fontsize=20, fontweight='bold')
 
     def selectPointsInRegion(self, x, y):
         # select only the points (X,Y) in the region:
@@ -113,6 +147,12 @@ class Spectrum (object):
         '''
         self.probe_curve_x = self.r_vector
         self.probe_curve_y = self.ftr_vector * self.scale_factor
+        self.ideal_curve_x, self.ideal_curve_y = self.ideal_curve_r, self.ideal_curve_ftr
+        self.r_factor_region = self.r_factor_region_ftr
+
+        self.probe_curve_r   =  self.probe_curve_x
+        self.probe_curve_ftr =  self.probe_curve_y
+
         x1, y1 = self.selectPointsInRegion(self.ideal_curve_x, self.ideal_curve_y)
         x2, y2 = self.selectPointsInRegion(self.probe_curve_x, self.probe_curve_y)
 
@@ -130,6 +170,12 @@ class Spectrum (object):
         '''
         self.probe_curve_x = self.k_vector
         self.probe_curve_y = self.chi_vector
+        self.ideal_curve_x, self.ideal_curve_y = self.ideal_curve_k, self.ideal_curve_chi
+        self.r_factor_region = self.r_factor_region_chi_k
+
+        self.probe_curve_k   =  self.probe_curve_x
+        self.probe_curve_chi =  self.probe_curve_y
+
         x1, y1 = self.selectPointsInRegion(self.ideal_curve_x, self.ideal_curve_y)
         x2, y2 = self.selectPointsInRegion(self.probe_curve_x, self.probe_curve_y)
 
@@ -152,10 +198,17 @@ if __name__ == '__main__':
     a = Spectrum()
     a.loadSpectrumData()
 
-    a.ideal_curve_y = a.ftr_vector*1.2
-    a.ideal_curve_x = a.r_vector
+    a.ideal_curve_ftr = a.ftr_vector*1.2
+    a.ideal_curve_r = a.r_vector
+    a.ideal_curve_k = a.k_vector
+    a.ideal_curve_chi = a.chi_vector * 1.1
 
     print(a.get_FTR_R_factor())
     a.plotTwoSpectrum_FTR_r()
+    plt.legend()
+    plt.show()
+
+    print(a.get_chi_R_factor())
+    a.plotTwoSpectrum_chi_k()
     plt.legend()
     plt.show()
