@@ -150,15 +150,16 @@ class Spectrum (object):
         self.ideal_curve_x, self.ideal_curve_y = self.ideal_curve_r, self.ideal_curve_ftr
         self.r_factor_region = self.r_factor_region_ftr
 
-        self.probe_curve_r   =  self.probe_curve_x
-        self.probe_curve_ftr =  self.probe_curve_y
-
         x1, y1 = self.selectPointsInRegion(self.ideal_curve_x, self.ideal_curve_y)
         x2, y2 = self.selectPointsInRegion(self.probe_curve_x, self.probe_curve_y)
 
         x_interp, y1_out, y2_out = self.interpArraysToEqualLength(x1, y1, x2, y2)
         self.probe_curve_x = x_interp
         self.probe_curve_y = y2_out
+
+        self.probe_curve_r = self.probe_curve_x
+        self.probe_curve_ftr = self.probe_curve_y
+
         return self.get_R_factor(y_ideal=y1_out, y_probe=y2_out)
 
     def get_chi_R_factor(self):
@@ -173,13 +174,15 @@ class Spectrum (object):
         self.ideal_curve_x, self.ideal_curve_y = self.ideal_curve_k, self.ideal_curve_chi
         self.r_factor_region = self.r_factor_region_chi_k
 
-        self.probe_curve_k   =  self.probe_curve_x
-        self.probe_curve_chi =  self.probe_curve_y
-
         x1, y1 = self.selectPointsInRegion(self.ideal_curve_x, self.ideal_curve_y)
         x2, y2 = self.selectPointsInRegion(self.probe_curve_x, self.probe_curve_y)
 
         x_interp, y1_out, y2_out = self.interpArraysToEqualLength(x1, y1, x2, y2)
+        self.probe_curve_x = x_interp
+        self.probe_curve_y = y2_out
+
+        self.probe_curve_k = self.probe_curve_x
+        self.probe_curve_chi = self.probe_curve_y
         return self.get_R_factor(y_ideal=y1_out, y_probe=y2_out)
 
     def convert_ideal_curve_to_FTR(self):
