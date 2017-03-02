@@ -49,14 +49,7 @@ class FTR_gulp_to_feff_A_model():
         self.theory_one.label_latex = 'snapshot: {0}'.format(snapNumberStr)
 
     def get_R_factor(self):
-        self.theory_one.r_factor_region = np.array([0.5, 10])
-        self.theory_one.ideal_curve_x = self.experiment.k_vector
-        self.theory_one.ideal_curve_y = self.experiment.chi_vector
         R_chi = self.theory_one.get_chi_R_factor()
-
-        self.theory_one.r_factor_region = np.array([1, 5])
-        self.theory_one.ideal_curve_x = self.experiment.r_vector
-        self.theory_one.ideal_curve_y = self.experiment.ftr_vector
         R_ftr = self.theory_one.get_FTR_R_factor()
 
         R_tot = 0.5*(R_ftr + R_chi)
