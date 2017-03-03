@@ -10,6 +10,10 @@ from feff.libs.load_chi_data_file import load_and_apply_xftf, load_chi_data
 from feff.libs.feff_processing import xftf
 import matplotlib.pyplot as plt
 import numpy as np
+class GraphElement():
+    # base graph elements class
+    def __init__(self):
+        self.axes = []
 
 class Spectrum (object):
     # base spectrum class
