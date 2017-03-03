@@ -1,9 +1,9 @@
-'''
+"""
 * Created by Zhenia Syryanyy (Yevgen Syryanyy)
 * e-mail: yuginboy@gmail.com
 * License: this code is in GPL license
 * Last modified: 2017-02-28
-'''
+"""
 from feff.libs.class_Spectrum import Spectrum, GraphElement
 import os
 import datetime
@@ -207,7 +207,7 @@ class FTR_gulp_to_feff_A_model():
 
             # plt.subplots_adjust(top=0.85)
             # gs1.tight_layout(fig, rect=[0, 0.03, 1, 0.95])
-            # self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+            self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
 
             # put window to the second monitor
             # figManager.window.setGeometry(1923, 23, 640, 529)
