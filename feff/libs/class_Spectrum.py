@@ -10,6 +10,83 @@ from feff.libs.load_chi_data_file import load_and_apply_xftf, load_chi_data
 from feff.libs.feff_processing import xftf
 import matplotlib.pyplot as plt
 import numpy as np
+class BaseData():
+    def __init__(self):
+        self.number = []
+        self.Rtot = []
+        self.Rchi = []
+        self.Rftr = []
+        self.snapshotName = []
+
+    def fill_initials(self):
+        self.number = 0
+        self.Rtot = 1000
+        self.Rchi = 1000
+        self.Rftr = 1000
+        self.snapshotName = ''
+
+    def flush(self):
+        self.number = []
+        self.Rtot = []
+        self.Rchi = []
+        self.Rftr = []
+        self.snapshotName = []
+
+class TableData():
+    def __init__(self):
+        self.dictData = {}
+        self.outFileName = 'table.txt'
+        self.outDirPath = runningScriptDir
+
+        # create object for store minimum case:
+        self.minimum = BaseData()
+        self.minimum.fill_initials()
+
+    def addRecord(self, currentBaseData):
+        num = len(self.dictData)
+        if isinstance(currentBaseData, BaseData):
+            self.dictData[num+1] = dict({'number' : [], 'Rtot' : [], 'Rchi' : [], 'Rftr' : [], 'snapshotName' : []})
+            self.dictData[num+1]['Rtot'] = currentBaseData.Rtot
+            self.dictData[num+1]['Rchi'] = currentBaseData.Rchi
+            self.dictData[num+1]['Rftr'] = currentBaseData.Rftr
+            self.dictData[num+1]['number'] = currentBaseData.number
+            self.dictData[num+1]['snapshotName'] = currentBaseData.snapshotName
+
+            if currentBaseData.Rtot < self.minimum.Rtot:
+                # if minimum:
+                self.minimum.Rtot = currentBaseData.Rtot
+                self.minimum.Rchi = currentBaseData.Rchi
+                self.minimum.Rftr = currentBaseData.Rftr
+                self.minimum.number = currentBaseData.number
+                self.minimum.snapshotName = currentBaseData.snapshotName
+
+    def writeToASCIIFile(self):
+        fileName = os.path.join(self.outDirPath, self.outFileName)
+        num = len(self.dictData)
+        if num > 0 :
+            with open(fileName, 'w') as f:
+                try:
+                    txt = '# minimum: \n'
+                    txt = txt + '# N= {0}\tRtot = {1}\tRchi = {2}\tRftr = {3}\tSnpshotName = {4}\n'.format(self.minimum.number,
+                                                                                                         self.minimum.Rtot,
+                                                                                                         self.minimum.Rchi,
+                                                                                                         self.minimum.Rftr,
+                                                                                                         self.minimum.snapshotName)
+                    txt = txt + '# ' + '---'*15 + '\n\n'
+                    txt = txt + 'number\tRtot\tRchi\tRftr\tsnapshotName\n'
+                    f.write(txt)
+                    for i, val in enumerate(self.dictData):
+                        txt = '{0}\t{1}\t{2}\t{3}\t{4}\n'.format(val['number'], val['Rtot'], val['Rchi'],
+                                                                 val['Rftr'], val['snapshotName'])
+                        f.write(txt)
+                except Exception:
+                    print('cannot write to ASCII file: {}'.format(fileName))
+                finally:
+                    print('file: {} has been closed'.format(fileName))
+                    f.close()
+
+
+
 class GraphElement():
     # base graph elements class
     def __init__(self):
