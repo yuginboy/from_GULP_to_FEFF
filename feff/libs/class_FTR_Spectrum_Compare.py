@@ -4,7 +4,7 @@
 * License: this code is in GPL license
 * Last modified: 2017-02-28
 """
-from feff.libs.class_Spectrum import Spectrum, GraphElement
+from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
 import os
 import datetime
 from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
@@ -21,12 +21,18 @@ class FTR_gulp_to_feff_A_model():
 
     '''
     def __init__(self):
+        # store minimum values:
+        self.minimum = BaseData()
+        self.minimum.fill_initials()
+
         self.FTR = GraphElement()
         self.Chi_k = GraphElement()
         self.suptitle_fontsize = 18
 
         self.projectWorkingFEFFoutDirectory = '/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001'
         self.listOfSnapshotFiles = []
+        # out dir for  Rfactor minimum files:
+        self.outMinValsDir = ''
 
         self.graph_title_txt = 'model name'
         self.showFigs = True
@@ -226,15 +232,25 @@ class FTR_gulp_to_feff_A_model():
             self.figManager.window.setWindowTitle('Search the minimum and find the coordinates')
             self.figManager.window.showMinimized()
 
-        # if saveFigs and self.showFigs:
-        #     # save to the PNG file:
-        #     timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
-        #     out_file_name = get_folder_name(self.theoryDataPath) + timestamp + \
-        #                     '_R={0:1.4}.png'.format(self.total_R_faktor)
-        #     self.fig.savefig(os.path.join(self.theoryDataPath, out_file_name))
+        if saveFigs and self.showFigs:
+            # save to the PNG file:
+            # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+            out_file_name =  + \
+                            '_R={0:1.4}.png'.format(self.total_R_faktor)
+            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def findBestSnapshotFromList(self):
-        pass
+        self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory, first_part_of_folder_name='Rmin')
+        self.setupAxes()
+        for file in self.listOfSnapshotFiles:
+            self.theory_one.pathToLoadDataFile = file
+            self.theory_one.loadSpectrumData()
+            self.updateInfo()
+            R_tot, R_ftr, R_chi = self.get_R_factor()
+            if R_tot < self.minimum.Rtot:
+                self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+
+
 
 class FTR_gulp_to_feff_A_B_mix_models():
     def __init__(self):

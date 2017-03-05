@@ -33,6 +33,9 @@ class BaseData():
         self.snapshotName = []
 
 class TableData():
+    '''
+    create table object with some typical methods for searching minimum and writing ASCII file
+    '''
     def __init__(self):
         self.dictData = {}
         self.outFileName = 'table.txt'
@@ -45,12 +48,12 @@ class TableData():
     def addRecord(self, currentBaseData):
         num = len(self.dictData)
         if isinstance(currentBaseData, BaseData):
-            self.dictData[num+1] = dict({'number' : [], 'Rtot' : [], 'Rchi' : [], 'Rftr' : [], 'snapshotName' : []})
-            self.dictData[num+1]['Rtot'] = currentBaseData.Rtot
-            self.dictData[num+1]['Rchi'] = currentBaseData.Rchi
-            self.dictData[num+1]['Rftr'] = currentBaseData.Rftr
-            self.dictData[num+1]['number'] = currentBaseData.number
-            self.dictData[num+1]['snapshotName'] = currentBaseData.snapshotName
+            self.dictData[num] = dict({'number' : [], 'Rtot' : [], 'Rchi' : [], 'Rftr' : [], 'snapshotName' : []})
+            self.dictData[num]['Rtot'] = currentBaseData.Rtot
+            self.dictData[num]['Rchi'] = currentBaseData.Rchi
+            self.dictData[num]['Rftr'] = currentBaseData.Rftr
+            self.dictData[num]['number'] = currentBaseData.number
+            self.dictData[num]['snapshotName'] = currentBaseData.snapshotName
 
             if currentBaseData.Rtot < self.minimum.Rtot:
                 # if minimum:
