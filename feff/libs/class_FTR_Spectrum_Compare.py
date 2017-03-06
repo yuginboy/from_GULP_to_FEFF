@@ -407,6 +407,7 @@ if __name__ == '__main__':
     a.weights_of_R_factor = np.array([1, 0])
     a.startCalcAllSnapshots()
 
+
     # # start calculate only snapshot file:
     # a = FTR_gulp_to_feff_A_model()
     # a.calcSelectedSnapshotFile()
