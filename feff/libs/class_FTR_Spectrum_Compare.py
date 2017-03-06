@@ -250,7 +250,15 @@ class FTR_gulp_to_feff_A_model():
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def findBestSnapshotFromList(self):
-        self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory, first_part_of_folder_name='Rmin')
+
+        if self.weights_of_R_factor[1] < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+                                                        first_part_of_folder_name='Rmin=Rchi')
+        elif self.weights_of_R_factor[0] < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+                                                        first_part_of_folder_name='Rmin=Rftr')
+        else:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory, first_part_of_folder_name='Rmin=Rtot')
         self.setupAxes()
         number = 0
         for filePath in self.listOfSnapshotFiles:
@@ -275,7 +283,7 @@ class FTR_gulp_to_feff_A_model():
         self.table.outFileName = modelName + timestamp + '_R={0:1.4}.txt'.format(self.minimum.Rtot)
         self.table.writeToASCIIFile()
 
-    def startCalcAllSnapshots(self):
+    def calcAllSnapshotFiles(self):
         '''
         main method to run searching procedure of minimum R-factor snapshot
         :return:
@@ -404,8 +412,8 @@ if __name__ == '__main__':
 
     # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
-    a.weights_of_R_factor = np.array([1, 0])
-    a.startCalcAllSnapshots()
+    a.weights_of_R_factor = np.array([0, 1])
+    a.calcAllSnapshotFiles()
 
 
     # # start calculate only snapshot file:
