@@ -19,8 +19,11 @@ class Unitcell(AverageRDF):
         self.l_fms = 2
         self.stoichiometry = 4
         self.x = np.zeros(numOfAtoms)
+        self.xAver = np.zeros(numOfAtoms)
         self.y = np.zeros(numOfAtoms)
+        self.yAver = np.zeros(numOfAtoms)
         self.z = np.zeros(numOfAtoms)
+        self.zAver = np.zeros(numOfAtoms)
         self.atomIndex = np.zeros(numOfAtoms)
         # self.atomIndex = np.arange(0, numOfAtoms, 1)
         self.tag = np.zeros(numOfAtoms, dtype='U2')
@@ -32,6 +35,7 @@ class Unitcell(AverageRDF):
         self.outDirRDF = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
         self.outDirXSF = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
         self.outDirCFG = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
+        self.outDirAverFeffInp = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
 
         # file name:
         self.outNameFEFF = 'feff'
@@ -39,6 +43,7 @@ class Unitcell(AverageRDF):
         self.outNameRDF = 'rdf'
         self.outNameXSF = 'struct'
         self.outNameCFG = 'stem'
+        self.outNameAverFeffInp = 'aver_inp'
 
         # rdfDist is vector of distances for radial distribution calculation:
         self.rdfDist = np.linspace(0, 6, 4)
@@ -283,6 +288,7 @@ class Unitcell(AverageRDF):
         self.outDirRDF = create_out_data_folder(projectDir, first_part_of_folder_name='rdf_')
         self.outDirXSF = create_out_data_folder(projectDir, first_part_of_folder_name='xsf_')
         self.outDirCFG = create_out_data_folder(projectDir, first_part_of_folder_name='stem_')
+        self.outDirAverFeffInp = create_out_data_folder(projectDir, first_part_of_folder_name='aver_inp')
 
         # for FEFF calculation:
         self.outDirFEFFCalc = create_out_data_folder(projectDir, first_part_of_folder_name='feff_')
@@ -422,6 +428,29 @@ class Unitcell(AverageRDF):
         self.dataPath = self.outDirRDF
         self.loadFiles()
         self.plot()
+
+    def writeAverFeffInpFile(self, ext='inp'):
+        '''
+        # write average feff input header lines, table of potentials and table
+        # coordinates and attributes of atoms to file
+        :param filename: full path to output file
+        :param mask: base name of output file (ex:"test_000001.txt" )
+        :return:
+        '''
+        numOfRepeat = self.tag.tolist().count(self.majorElemTag)
+        mask = self.outNameAverFeffInp + '_'
+        self.backUpStruct()
+        folder = self.outDirAverFeffInp
+        filename = os.path.join(folder, 'test.' + ext)
+        vectorIndex = (self.tag == self.majorElemTag).nonzero()[0].tolist()
+        for i in range(0, numOfRepeat, 1):
+            self.centrShift(centrAtomIndex=vectorIndex[i])
+            fn = createUniqFile(filename, mask=mask)
+            writeHeaderToInpFile(filename=fn)
+            self.ipotTableConstructor(filename=fn, overwriteOrNot=False)
+            self.writeTableToFile(filename=fn, overwriteOrNot=False)
+            # print('')
+            self.restoreFromBackUp()
 
 
 if __name__ == "__main__":

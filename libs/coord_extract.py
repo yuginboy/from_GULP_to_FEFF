@@ -2,6 +2,7 @@ import numpy as np
 import re
 import os, sys
 import progressbar
+# import
 from libs.classes import Unitcell
 from feff.mainFEFF import feffCalcFun
 
@@ -30,6 +31,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
     atomInSnapshot.outNameCFG = os.path.basename(file.name).split('.')[0]
     atomInSnapshot.outNameRDF = os.path.basename(file.name).split('.')[0]
     atomInSnapshot.structName = os.path.basename(file.name).split('.')[0]
+    atomInSnapshot.outNameAverFeffInp = os.path.basename(file.name).split('.')[0]
     l = 0
     bar = progressbar.ProgressBar(maxval = len(timestep),\
                                    widgets = [progressbar.Bar('=', '[', ']'), ' ',
@@ -63,6 +65,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
                     atomInSnapshot.x[localAtomNumber-1] = coordLine[0]# X
                     atomInSnapshot.y[localAtomNumber-1] = coordLine[1]# Y
                     atomInSnapshot.z[localAtomNumber-1] = coordLine[2]# Z
+
                 if k == 2:
                     k = -1
 
@@ -73,7 +76,11 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
                 # текущего снапшота на единицу
                 atomInSnapshot.writeFeffInpFileSeq()
                 atomInSnapshot.writeRDFfileSeq()
+                atomInSnapshot.xAver = np.column_stack((atomInSnapshot.xAver, atomInSnapshot.x))# X
+                atomInSnapshot.yAver = np.column_stack((atomInSnapshot.yAver, atomInSnapshot.y))# Y
+                atomInSnapshot.zAver = np.column_stack((atomInSnapshot.zAver, atomInSnapshot.z))# Z
                 if (j % 100 == 0):
+                    # pass
                     atomInSnapshot.writeXYZfileSeq()
                     atomInSnapshot.writeXSFfileSeq()
                 j = j+1
@@ -122,7 +129,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
     if i < numOfLinesInFile:
         bar.finish()
     # write CFG files:
-    atomInSnapshot.writeCFGfileSeq()
+    # atomInSnapshot.writeCFGfileSeq()
     print("input files for QSTEM were created")
     # calculate RDF values:
     atomInSnapshot.calcAndPlotMeanRDF()
@@ -131,4 +138,12 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
                 tmpPath=atomInSnapshot.outDirFEFFtmp,
                 outDirPath=atomInSnapshot.outDirFEFFCalc,
                 plotTheData = True)
+
+    #calculation average input coordinates and stndart deviation
+    atomInSnapshot.outNameAverFeffInp = os.path.basename(file.name).split('.')[0]+'_aver'
+    atomInSnapshot.x = np.average(atomInSnapshot.xAver, axis=1)
+    atomInSnapshot.y = np.average(atomInSnapshot.yAver, axis=1)
+    atomInSnapshot.z = np.average(atomInSnapshot.zAver, axis=1)
+    atomInSnapshot.writeAverFeffInpFile()
+
     print('end of the FEFF simulations')
