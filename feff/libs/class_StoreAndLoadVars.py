@@ -13,8 +13,10 @@ class StoreAndLoadVars():
     def __init__(self):
         self.fileNameOfStoredVars = 'vars.pckl'
         self.dirPath = runningScriptDir
+        self.filePath = os.path.join(self.dirPath, 'test.txt')
 
         self.lastUsedDirPath = runningScriptDir
+        self.lastUsedFilePath = self.filePath
 
     def loadDataFromPickleFile(self):
         # Getting back the objects:
@@ -25,6 +27,7 @@ class StoreAndLoadVars():
             # print('')
             try:
                 self.lastUsedDirPath = obj[0].lastUsedDirPath
+                self.lastUsedFilePath = obj[0].lastUsedFilePath
             except Exception:
                 print(self.fileNameOfStoredVars + ' does not have attribute "lastUsedDirPath"')
 
@@ -38,6 +41,13 @@ class StoreAndLoadVars():
         return self.lastUsedDirPath
 
     def saveLastUsedDirPath(self):
+        self.storeDataToPickleFile()
+
+    def getLastUsedFilePath(self):
+        self.loadDataFromPickleFile()
+        return self.lastUsedFilePath
+
+    def saveLastUsedFilePath(self):
         self.storeDataToPickleFile()
 
 

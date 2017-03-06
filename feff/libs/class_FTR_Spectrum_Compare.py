@@ -9,6 +9,7 @@ import os
 import datetime
 from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
     listOfFilesFN_with_selected_ext, create_out_data_folder
+from feff.libs.class_StoreAndLoadVars import StoreAndLoadVars
 import matplotlib.pyplot as plt
 from matplotlib import pylab
 import matplotlib.gridspec as gridspec
@@ -24,6 +25,15 @@ class FTR_gulp_to_feff_A_model():
         # store minimum values:
         self.minimum = BaseData()
         self.minimum.fill_initials()
+        # store current values of R-factor:
+        self.currentValues = BaseData()
+        self.currentValues.fill_initials()
+
+        # store to the ASCII table on a file:
+        self.table = TableData()
+
+        # weights of R-factors (Rtot = (Rchi* w1 + Rrtf*w2)/(w1+w2)):
+        self.weights_of_R_factor = np.array([1, 1])
 
         self.FTR = GraphElement()
         self.Chi_k = GraphElement()
@@ -82,7 +92,7 @@ class FTR_gulp_to_feff_A_model():
         R_chi = self.theory_one.get_chi_R_factor()
         R_ftr = self.theory_one.get_FTR_R_factor()
 
-        R_tot = 0.5*(R_ftr + R_chi)
+        R_tot = (self.weights_of_R_factor[1]*R_ftr + self.weights_of_R_factor[0]*R_chi) / np.sum(self.weights_of_R_factor)
 
         return R_tot, R_ftr, R_chi
 
@@ -235,20 +245,91 @@ class FTR_gulp_to_feff_A_model():
         if saveFigs and self.showFigs:
             # save to the PNG file:
             # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
-            out_file_name =  + \
-                            '_R={0:1.4}.png'.format(self.total_R_faktor)
+            modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+            out_file_name =  snapNumberStr + '_R={0:1.4}.png'.format(self.minimum.Rtot)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def findBestSnapshotFromList(self):
         self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory, first_part_of_folder_name='Rmin')
         self.setupAxes()
-        for file in self.listOfSnapshotFiles:
-            self.theory_one.pathToLoadDataFile = file
+        number = 0
+        for filePath in self.listOfSnapshotFiles:
+            number = number + 1
+            self.theory_one.pathToLoadDataFile = filePath
             self.theory_one.loadSpectrumData()
             self.updateInfo()
             R_tot, R_ftr, R_chi = self.get_R_factor()
+
+            self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+            self.currentValues.number = number
+            self.currentValues.snapshotName = os.path.basename(filePath)
+            self.table.addRecord(self.currentValues)
             if R_tot < self.minimum.Rtot:
                 self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                self.updatePlot()
+
+        # store table to ASCII file:
+        self.table.outDirPath = self.outMinValsDir
+        timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+        modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        self.table.outFileName = modelName + timestamp + '_R={0:1.4}.txt'.format(self.minimum.Rtot)
+        self.table.writeToASCIIFile()
+
+    def startCalcAllSnapshots(self):
+        '''
+        main method to run searching procedure of minimum R-factor snapshot
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        root.withdraw()
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        self.getInDirectoryStandardFilePathes()
+        # set experiment spectra:
+        self.set_ideal_curve_params()
+        # start searching procedure:
+        self.findBestSnapshotFromList()
+
+    def calcSelectedSnapshotFile(self):
+        '''
+        calculate and plot graphs only for selected snapshot file
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog
+        # open GUI filedialog to select snapshot file:
+        a = StoreAndLoadVars()
+        print('last used: {}'.format(a.getLastUsedFilePath()))
+        # openfile dialog
+        root = tk.Tk()
+        root.withdraw()
+        file_path = filedialog.askopenfilename(filetypes = [("snapshot files",'*.dat')], initialdir=a.getLastUsedDirPath())
+        if os.path.isfile(file_path):
+            a.lastUsedFilePath = file_path
+            a.saveLastUsedFilePath()
+
+            # change the working directory path to selected one:
+            self.projectWorkingFEFFoutDirectory = os.path.dirname(file_path)
+            # search for experiment and theory files:
+            self.getInDirectoryStandardFilePathes()
+            self.listOfSnapshotFiles = [file_path]
+            # set experiment spectra:
+            self.set_ideal_curve_params()
+            # start searching procedure:
+            self.findBestSnapshotFromList()
+
 
 
 
@@ -310,12 +391,23 @@ class FTR_gulp_to_feff_A_B_mix_models():
 
 if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
+    #
+    # a = FTR_gulp_to_feff_A_model()
+    # a.updateInfo()
+    # print(a.get_R_factor())
+    # # a.plotSpectra_chi_k()
+    # # a.plotSpectra_FTR_r()
+    # a.setupAxes()
+    # a.updatePlot()
+    # plt.show()
 
+
+    # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
-    a.updateInfo()
-    print(a.get_R_factor())
-    # a.plotSpectra_chi_k()
-    # a.plotSpectra_FTR_r()
-    a.setupAxes()
-    a.updatePlot()
-    plt.show()
+    a.weights_of_R_factor = np.array([1, 0])
+    a.startCalcAllSnapshots()
+
+    # # start calculate only snapshot file:
+    # a = FTR_gulp_to_feff_A_model()
+    # a.calcSelectedSnapshotFile()
+

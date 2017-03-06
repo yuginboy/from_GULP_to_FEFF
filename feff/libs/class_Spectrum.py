@@ -10,6 +10,7 @@ from feff.libs.load_chi_data_file import load_and_apply_xftf, load_chi_data
 from feff.libs.feff_processing import xftf
 import matplotlib.pyplot as plt
 import numpy as np
+
 class BaseData():
     def __init__(self):
         self.number = []
@@ -70,7 +71,7 @@ class TableData():
             with open(fileName, 'w') as f:
                 try:
                     txt = '# minimum: \n'
-                    txt = txt + '# N= {0}\tRtot = {1}\tRchi = {2}\tRftr = {3}\tSnpshotName = {4}\n'.format(self.minimum.number,
+                    txt = txt + '# N= {0}\tRtot = {1}\tRchi = {2}\tRftr = {3}\tSnapshotName = {4}\n'.format(self.minimum.number,
                                                                                                          self.minimum.Rtot,
                                                                                                          self.minimum.Rchi,
                                                                                                          self.minimum.Rftr,
@@ -78,7 +79,8 @@ class TableData():
                     txt = txt + '# ' + '---'*15 + '\n\n'
                     txt = txt + 'number\tRtot\tRchi\tRftr\tsnapshotName\n'
                     f.write(txt)
-                    for i, val in enumerate(self.dictData):
+                    for i in self.dictData:
+                        val = self.dictData[i]
                         txt = '{0}\t{1}\t{2}\t{3}\t{4}\n'.format(val['number'], val['Rtot'], val['Rchi'],
                                                                  val['Rftr'], val['snapshotName'])
                         f.write(txt)
@@ -218,8 +220,8 @@ class Spectrum (object):
         # calc R-factor
         # y_ideal - ideal curve
         # y_probe - probing curve
-        A1 = np.abs(y_ideal - y_probe)
-        A2 = np.abs(y_ideal)
+        A1 = np.power(np.abs(y_ideal - y_probe), 2)
+        A2 = np.power(np.abs(y_ideal), 2)
         return (np.sum(A1) / np.sum(A2))
 
     def get_FTR_R_factor(self):
