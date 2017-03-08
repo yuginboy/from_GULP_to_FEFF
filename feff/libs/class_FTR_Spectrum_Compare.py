@@ -412,7 +412,7 @@ if __name__ == '__main__':
 
     # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
-    a.weights_of_R_factor = np.array([0, 1])
+    a.weights_of_R_factor = np.array([1, 0])
     a.calcAllSnapshotFiles()
 
 
