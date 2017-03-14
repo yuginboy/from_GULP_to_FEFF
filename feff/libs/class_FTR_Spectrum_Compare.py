@@ -7,9 +7,11 @@
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
 import os
 import datetime
+import copy
 from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
     listOfFilesFN_with_selected_ext, create_out_data_folder
 from feff.libs.class_StoreAndLoadVars import StoreAndLoadVars
+from feff.libs.class_SpectraSet import SpectraSet
 import matplotlib.pyplot as plt
 from matplotlib import pylab
 import matplotlib.gridspec as gridspec
@@ -29,11 +31,16 @@ class FTR_gulp_to_feff_A_model():
         self.currentValues = BaseData()
         self.currentValues.fill_initials()
 
+        # How many serial snapshots from different center atoms we have:
+        self.numberOfSerialEquivalentAtoms = 2
+
         # store to the ASCII table on a file:
         self.table = TableData()
 
         # weights of R-factors (Rtot = (Rchi* w1 + Rrtf*w2)/(w1+w2)):
-        self.weights_of_R_factor = np.array([1, 1])
+        # weights for calc tota R-factor in minimization procedure
+        self.weight_R_factor_FTR = 1
+        self.weight_R_factor_chi = 1
 
         self.FTR = GraphElement()
         self.Chi_k = GraphElement()
@@ -59,6 +66,13 @@ class FTR_gulp_to_feff_A_model():
         self.theory_one.label = 'snapshot model'
         self.theory_one.label_latex = 'snapshot model'
         self.theory_one.loadSpectrumData()
+
+        # create object which will be collected serial snapshot spectra
+        self.setOfSnapshotSpectra = SpectraSet()
+
+        self.theory_SimpleComposition = Spectrum()
+        self.theory_LinearComposition = Spectrum()
+
 
         self.set_ideal_curve_params()
 
@@ -87,12 +101,14 @@ class FTR_gulp_to_feff_A_model():
         modelName, snapNumberStr = self.get_name_of_model_from_fileName()
         self.graph_title_txt = 'model: ' + modelName + ', $R_{{tot}}$  = {0}'.format(round(self.get_R_factor()[0], 4))
         self.theory_one.label_latex = 'snapshot: {0}'.format(snapNumberStr)
+        self.theory_one.label = snapNumberStr
 
     def get_R_factor(self):
         R_chi = self.theory_one.get_chi_R_factor()
         R_ftr = self.theory_one.get_FTR_R_factor()
 
-        R_tot = (self.weights_of_R_factor[1]*R_ftr + self.weights_of_R_factor[0]*R_chi) / np.sum(self.weights_of_R_factor)
+        R_tot = (self.weight_R_factor_FTR * R_ftr + self.weight_R_factor_chi * R_chi) / \
+                (self.weight_R_factor_FTR + self.weight_R_factor_chi)
 
         return R_tot, R_ftr, R_chi
 
@@ -248,24 +264,163 @@ class FTR_gulp_to_feff_A_model():
             modelName, snapNumberStr = self.get_name_of_model_from_fileName()
             out_file_name =  snapNumberStr + '_R={0:1.4}.png'.format(self.minimum.Rtot)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+    def updatePlotOfSnapshotsComposition_Simple(self, saveFigs=True):
+
+        if self.showFigs:
+
+            # self.suptitle_txt = '$Fit$ $model$ $for$ $sample$: '+ \
+            #     '$Au[{0:1.3f}\AA]/Co[{1:1.3f}\AA]/CoO[{2:1.3f}\AA]/Au[{3:1.3f}\AA]/MgO[{4:1.3f}\AA]/MgCO_3[{5:1.3f}\AA]/Mg(OH)_2[{6:1.3f}\AA]/C[{7:1.3f}\AA]$'.format(
+            #     self.thicknessVector[0], self.thicknessVector[1], self.thicknessVector[2], self.thicknessVector[3],
+            #     self.thicknessVector[4], self.thicknessVector[5], self.thicknessVector[6], self.thicknessVector[7],
+            # )
+
+
+            self.fig.clf()
+            gs = gridspec.GridSpec(1, 2)
+
+            self.FTR.axes = self.fig.add_subplot(gs[0, 0])
+            plt.axes(self.FTR.axes)
+            self.setOfSnapshotSpectra.plotSpectra_FTR_r_SimpleComposition()
+            self.FTR.axes.grid(True)
+
+            self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
+            plt.axes(self.Chi_k.axes)
+            self.setOfSnapshotSpectra.plotSpectra_chi_k_SimpleComposition()
+            # self.Chi_k.axes.invert_xaxis()
+            self.Chi_k.axes.grid(True)
+
+            # The formatting of tick labels is controlled by a Formatter object,
+            # which assuming you haven't done anything fancy will be a ScalerFormatterby default.
+            # This formatter will use a constant shift if the fractional change of the values visible is very small.
+            # To avoid this, simply turn it off:
+            self.FTR.axes.get_xaxis().get_major_formatter().set_scientific(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_scientific(False)
+
+            self.FTR.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+
+            # plt.subplots_adjust(top=0.85)
+            # gs1.tight_layout(fig, rect=[0, 0.03, 1, 0.95])
+            self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            self.figManager.window.setGeometry(1920, 20, 1920, 1180)
+
+            # plt.show()
+            plt.draw()
+            self.fig.suptitle(self.graph_title_txt, fontsize=self.suptitle_fontsize, fontweight='normal')
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            # self.figManager.window.setGeometry(780, 20, 800, 600)
+
+
+
+            self.figManager.window.setWindowTitle('Search the minimum and find the coordinates')
+            self.figManager.window.showMinimized()
+
+        if saveFigs and self.showFigs:
+            # save to the PNG file:
+            # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+            # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+            out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+    def updatePlotOfSnapshotsComposition_Linear(self, saveFigs=True):
+
+        if self.showFigs:
+
+            # self.suptitle_txt = '$Fit$ $model$ $for$ $sample$: '+ \
+            #     '$Au[{0:1.3f}\AA]/Co[{1:1.3f}\AA]/CoO[{2:1.3f}\AA]/Au[{3:1.3f}\AA]/MgO[{4:1.3f}\AA]/MgCO_3[{5:1.3f}\AA]/Mg(OH)_2[{6:1.3f}\AA]/C[{7:1.3f}\AA]$'.format(
+            #     self.thicknessVector[0], self.thicknessVector[1], self.thicknessVector[2], self.thicknessVector[3],
+            #     self.thicknessVector[4], self.thicknessVector[5], self.thicknessVector[6], self.thicknessVector[7],
+            # )
+
+
+            self.fig.clf()
+            gs = gridspec.GridSpec(1, 2)
+
+            self.FTR.axes = self.fig.add_subplot(gs[0, 0])
+            plt.axes(self.FTR.axes)
+            self.setOfSnapshotSpectra.plotSpectra_FTR_r_LinearComposition()
+            self.FTR.axes.grid(True)
+
+            self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
+            plt.axes(self.Chi_k.axes)
+            self.setOfSnapshotSpectra.plotSpectra_chi_k_LinearComposition()
+            # self.Chi_k.axes.invert_xaxis()
+            self.Chi_k.axes.grid(True)
+
+            # The formatting of tick labels is controlled by a Formatter object,
+            # which assuming you haven't done anything fancy will be a ScalerFormatterby default.
+            # This formatter will use a constant shift if the fractional change of the values visible is very small.
+            # To avoid this, simply turn it off:
+            self.FTR.axes.get_xaxis().get_major_formatter().set_scientific(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_scientific(False)
+
+            self.FTR.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+
+            # plt.subplots_adjust(top=0.85)
+            # gs1.tight_layout(fig, rect=[0, 0.03, 1, 0.95])
+            self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            self.figManager.window.setGeometry(1920, 20, 1920, 1180)
+
+            # plt.show()
+            plt.draw()
+            self.fig.suptitle(self.graph_title_txt, fontsize=self.suptitle_fontsize, fontweight='normal')
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            # self.figManager.window.setGeometry(780, 20, 800, 600)
+
+
+
+            self.figManager.window.setWindowTitle('Search the minimum and find the coordinates')
+            self.figManager.window.showMinimized()
+
+        if saveFigs and self.showFigs:
+            # save to the PNG file:
+            # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+            # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+            out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def findBestSnapshotFromList(self):
 
-        if self.weights_of_R_factor[1] < 0.001:
+        if (self.weight_R_factor_FTR / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
                                                         first_part_of_folder_name='Rmin=Rchi')
-        elif self.weights_of_R_factor[0] < 0.001:
+        elif (self.weight_R_factor_chi / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
                                                         first_part_of_folder_name='Rmin=Rftr')
         else:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory, first_part_of_folder_name='Rmin=Rtot')
         self.setupAxes()
         number = 0
+
+
+        self.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.setOfSnapshotSpectra.set_ideal_curve_params()
+        currentSerialSnapNumber = 0
+
         for filePath in self.listOfSnapshotFiles:
             number = number + 1
+            currentSerialSnapNumber = currentSerialSnapNumber + 1
             self.theory_one.pathToLoadDataFile = filePath
             self.theory_one.loadSpectrumData()
             self.updateInfo()
+
+            modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+
+            currentSpectra = copy.deepcopy(self.theory_one)
+            self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra)
+            self.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
+            self.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+
             R_tot, R_ftr, R_chi = self.get_R_factor()
 
             self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
@@ -276,10 +431,55 @@ class FTR_gulp_to_feff_A_model():
                 self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
                 self.updatePlot()
 
+            if currentSerialSnapNumber == self.numberOfSerialEquivalentAtoms:
+
+
+                currentSerialSnapNumber = 0
+
+                # ----- Simple Composition of Snapshots:
+                self.setOfSnapshotSpectra.calcSimpleSpectraComposition()
+                print('Simple composition has been calculated')
+                self.setOfSnapshotSpectra.updateInfo_SimpleComposition()
+                number = number + 1
+                R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
+                self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                self.currentValues.number = number
+                self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_simple.label
+                self.table.addRecord(self.currentValues)
+
+                self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_simple)
+                if R_tot < self.minimum.Rtot:
+                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                    self.graph_title_txt = 'model: ' + modelName + ',simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                        round(self.minimum.Rtot, 4))
+                    self.updatePlotOfSnapshotsComposition_Simple()
+
+                # ----- Linear Composition of Snapshots:
+                self.setOfSnapshotSpectra.calcLinearSpectraComposition()
+                print('Linear composition has been calculated')
+                self.setOfSnapshotSpectra.updateInfo_LinearComposition()
+                number = number + 1
+                R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition()
+                self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                self.currentValues.number = number
+                self.currentValues.snapshotName = self.setOfSnapshotSpectra.result.label
+                self.table.addRecord(self.currentValues)
+
+                self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result)
+                if R_tot < self.minimum.Rtot:
+                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                    self.graph_title_txt = 'model: ' + modelName + ',linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                        round(self.minimum.Rtot, 4))
+                    self.updatePlotOfSnapshotsComposition_Linear()
+
+                #     flush Dict of Set of Snapshots
+                self.setOfSnapshotSpectra.flushDictOfSpectra()
+
+
         # store table to ASCII file:
         self.table.outDirPath = self.outMinValsDir
         timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
-        modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
         self.table.outFileName = modelName + timestamp + '_R={0:1.4}.txt'.format(self.minimum.Rtot)
         self.table.writeToASCIIFile()
 
@@ -341,61 +541,6 @@ class FTR_gulp_to_feff_A_model():
 
 
 
-class FTR_gulp_to_feff_A_B_mix_models():
-    def __init__(self):
-        self.mix_parameter = 0.1
-        self.so2_bonds = [(0.81, 1)]
-
-
-        # define experiment data:
-        self.experiment = Spectrum()
-        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '450.chik')
-        self.experiment.label = 'experiment T=450 C'
-        self.experiment.label_latex = 'experiment $T=450^{\circ}$ '
-        self.experiment.loadSpectrumData()
-
-
-        self.theory_one = Spectrum()
-        self.theory_one.pathToLoadDataFile = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_000002_00001.dat'
-        self.theory_one.label = 'theory 1mono1SR2VasVga2_6_000002_00001'
-        self.theory_one.label_latex = 'theory 1mono1SR2VasVga2_6_000002_00001'
-        self.theory_one.loadSpectrumData()
-
-
-        self.theory_two = Spectrum()
-        self.theory_two.pathToLoadDataFile = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_000131_00130.dat'
-        self.theory_two.label = 'theory 1mono1SR2VasVga2_6_000131_00130'
-        self.theory_two.label_latex = 'theory 1mono1SR2VasVga2_6_000131_00130'
-        self.theory_two.loadSpectrumData()
-
-
-        self.theory_mix_state = Spectrum()
-        self.theory_mix_state.label = 'mix phases'
-        self.theory_mix_state.label_latex = 'mix phases $A_{{{0:.2f}}}B_{{{1:.2f}}}$'.format(self.mix_parameter, 1-self.mix_parameter)
-        self.theory_mix_state.r_vector = self.theory_one.r_vector
-        self.theory_mix_state.ftr_vector = self.theory_one.ftr_vector * self.mix_parameter + \
-                                           self.theory_two.ftr_vector * (1-self.mix_parameter)
-        self.theory_mix_state.ideal_curve_x = self.experiment.r_vector
-        self.theory_mix_state.ideal_curve_y = self.experiment.ftr_vector
-
-    def updateInfo(self):
-        self.theory_mix_state.label_latex = 'mix phases $A_{{0:1.3f}}B_{{1:1.3f}}$'.format(self.mix_parameter, 1-self.mix_parameter)
-
-    def get_R_factor(self):
-        return self.theory_mix_state.get_FTR_R_factor()
-
-    def plotSpectra(self):
-        self.theory_one.plotOneSpectrum_FTR_r()
-        self.theory_two.plotOneSpectrum_FTR_r()
-        self.theory_mix_state.plotTwoSpectrum_FTR_r()
-        plt.text(3, 0.18, '$R$-$factor$ = {0}, $x$ = {1}'.format(round(self.get_R_factor(), 4), round(self.mix_parameter, 4)),
-                 fontdict={'size': 20})
-        plt.legend()
-        plt.show()
-
-    def findOptimum(self):
-        pass
-
 
 if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
@@ -412,7 +557,9 @@ if __name__ == '__main__':
 
     # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
-    a.weights_of_R_factor = np.array([1, 0])
+    a.weight_R_factor_FTR = 1
+    a.weight_R_factor_chi = 0.0
+
     a.calcAllSnapshotFiles()
 
 

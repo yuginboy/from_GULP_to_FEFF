@@ -14,11 +14,12 @@ root.withdraw()
 #                                        initialdir=r'C:\wien2k_ver14\VirtualBoxShare\results_Pasha')
 # file_path2 = filedialog.askopenfilename(filetypes = [("FT(R) file",'*.dat')],
 #                                        initialdir=r'C:\wien2k_ver14\VirtualBoxShare\results_Pasha')
-file_path1 = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_000002_00001.dat'
-file_path2 = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_000131_00130.dat'
+file_path1 = r'/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_001429_01428.dat'
+file_path2 = r'/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_001430_01429.dat'
 # file_path1 = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/350.txt'
 # file_path2 = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/350.txt'
-exp_data_path2 = os.path.join(get_folder_name(runningScriptDir), 'data', '350.chik')
+# exp_data_path2 = os.path.join(get_folder_name(runningScriptDir), 'data', '350.chik')
+exp_data_path2 = r'/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001/result_1mono1SR2VasVga2_6.txt'
 
 k=1
 
@@ -67,38 +68,68 @@ def weightMix(x, fun1, fun2):
     r_val = rFactor(inputForR[0], inputForR[1])
     return r_val, x
 
+
+def linearFuncOfTwoSpectra(x, fun1, fun2):
+    if abs(np.sum(x))>0:
+        wft = fun1*x[0]/np.sum(x) + fun2*x[1]/np.sum(x)
+    else:
+        wft = fun1*x[0] + fun2*x[1]
+
+    return wft
+
+def weightMixModified(x, fun1, fun2):
+    wft = linearFuncOfTwoSpectra(x, fun1, fun2)
+    inputForR = deltaToPower(wft, ftex)
+    r_val = rFactor(inputForR[0], inputForR[1])
+    return r_val, x
+
+
+
 def calc(stepArray, x1, x2 ):
     rvalue = np.zeros((len(stepArray), 2))
     for i in range(len(stepArray)):
         rvalue [i, 0], rvalue[i, 1] = weightMix(stepArray[i], x1, x2)
     return rvalue
 
+def calcModified(stepArray, x1, x2 ):
+    rvalue = np.zeros((len(stepArray), 2))
+    for i in range(len(stepArray)):
+        rvalue [i, 0], rvalue[i, 1] = weightMixModified(stepArray[i], x1, x2)
+    return rvalue
+
 def func(x):
-    out = weightMix(x, ft1, ft2)
+    out = weightMixModified(x, ft1, ft2)
     return out[0]
 
 fullArra = calc(step, ft1, ft2)
 minR = np.amin(fullArra, axis=0)
 aminX=np.argmin(fullArra, axis=0)[0]
 
-res = minimize(func, x0=0, options={'gtol': 1e-6, 'disp': True})
+res = minimize(func, x0=[0, 0], options={'gtol': 1e-6, 'disp': True})
 print(res)
+res.x = res.x/np.sum(res.x)
 
-print('R-factor = {0}, x = {1}'.format(round(minR[0],4), round(fullArra[aminX,1],4)))
+print('R-factor = {0}, x = [{1}, {2}]'.format(round(res.fun,4), round(res.x[0],4), round(res.x[1],4)))
 # for i in range(len(step)):
 #     plt.plot(r1, ft1*(1-fullArra[i,1]) + ft2*fullArra[i,1])
 
 # plt.plot(fullArra[:, 1], fullArra[:,0])
 # plt.yscale('log')
 
-plt.plot(r1, ft1,c='r', lw=2, label='model for 450')
-plt.plot(r2, ft2,c='g', lw=2, label='model with 1VGa')
-plt.plot(rex, ftex,c='k', lw = 2, label='exp. data 350')
-plt.plot(r1, ft1*(1-fullArra[aminX,1]) + ft2*fullArra[aminX,1], ls='-', marker='o', c='c', label='best fit')
-plt.text(3, 0.18, '$R$-$factor$ = {0}, $x$ = {1}'.format(round(minR[0],4), round(fullArra[aminX,1],4)), fontdict={'size': 20})
-plt.axis([1, 5, 0, yMax])
+# plt.plot(r1, ft1,c='r', lw=2, label='model for 450')
+plt.plot(r1, ft1,c='r', lw=2, label='model 1')
+# plt.plot(r2, ft2,c='g', lw=2, label='model with 1VGa')
+plt.plot(r2, ft2,c='g', lw=2, label='model 2')
+plt.plot(rex, ftex,c='k', lw = 2, label='aver theor')
+# plt.plot(r1, ft1*(1-fullArra[aminX,1]) + ft2*fullArra[aminX,1], ls='-', marker='o', c='c', label='best fit')
+
+plt.plot(r1, linearFuncOfTwoSpectra([0.2054, 0.7946], ft1, ft2), ls='-', marker='o', c='c', label='best fit')
+# plt.text(3, 0.18, '$R$-$factor$ = {0}, $x$ = {1}'.format(round(minR[0],4), round(fullArra[aminX,1],4)), fontdict={'size': 20})
+plt.text(3, 0.18, '$R$-$factor$ = {0}, $x$ = {1}'.format(round(res.fun,4), round(res.x[0],4)), fontdict={'size': 20})
+# plt.axis([1, 5, 0, yMax])
 plt.legend()
 plt.show()
+print('end')
 
 
 
