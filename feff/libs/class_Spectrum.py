@@ -123,7 +123,7 @@ class Spectrum (object):
         # region for R(FTR)-factor calculation in Angstroms:
         self.r_factor_region_ftr = np.array([1, 5])
         # region for R(chi)-factor calculation in Angstroms^-1:
-        self.r_factor_region_chi_k = np.array([0.5, 10])
+        self.r_factor_region_chi_k = np.array([3.9, 12])
 
         # Temp array of ideal values for R-factor calculation:
         self.ideal_curve_x = []

@@ -32,7 +32,7 @@ class FTR_gulp_to_feff_A_model():
         self.currentValues.fill_initials()
 
         # How many serial snapshots from different center atoms we have:
-        self.numberOfSerialEquivalentAtoms = 2
+        self.numberOfSerialEquivalentAtoms = 4
 
         # store to the ASCII table on a file:
         self.table = TableData()
@@ -202,6 +202,13 @@ class FTR_gulp_to_feff_A_model():
             # save to the PNG file:
             # out_file_name = '%s_' % (case) + "%05d.png" % (numOfIter)
             # fig.savefig(os.path.join(out_dir, out_file_name))
+
+    def setAxesLimits_FTR(self):
+        plt.axis([1, 5, plt.ylim()[0], plt.ylim()[1]])
+    def setAxesLimits_Chi(self):
+        # plt.axis([3.5, 13, plt.ylim()[0], plt.ylim()[1]])
+        plt.axis([3.5, 13, -0.1, 0.1])
+
     def updatePlot(self, saveFigs=True):
 
         if self.showFigs:
@@ -220,12 +227,14 @@ class FTR_gulp_to_feff_A_model():
             plt.axes(self.FTR.axes)
             self.plotSpectra_FTR_r()
             self.FTR.axes.grid(True)
+            self.setAxesLimits_FTR()
 
             self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
             plt.axes(self.Chi_k.axes)
             self.plotSpectra_chi_k()
             # self.Chi_k.axes.invert_xaxis()
             self.Chi_k.axes.grid(True)
+            self.setAxesLimits_Chi()
 
             # The formatting of tick labels is controlled by a Formatter object,
             # which assuming you haven't done anything fancy will be a ScalerFormatterby default.
@@ -282,12 +291,14 @@ class FTR_gulp_to_feff_A_model():
             plt.axes(self.FTR.axes)
             self.setOfSnapshotSpectra.plotSpectra_FTR_r_SimpleComposition()
             self.FTR.axes.grid(True)
+            self.setAxesLimits_FTR()
 
             self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
             plt.axes(self.Chi_k.axes)
             self.setOfSnapshotSpectra.plotSpectra_chi_k_SimpleComposition()
             # self.Chi_k.axes.invert_xaxis()
             self.Chi_k.axes.grid(True)
+            self.setAxesLimits_Chi()
 
             # The formatting of tick labels is controlled by a Formatter object,
             # which assuming you haven't done anything fancy will be a ScalerFormatterby default.
@@ -344,12 +355,78 @@ class FTR_gulp_to_feff_A_model():
             plt.axes(self.FTR.axes)
             self.setOfSnapshotSpectra.plotSpectra_FTR_r_LinearComposition()
             self.FTR.axes.grid(True)
+            self.setAxesLimits_FTR()
 
             self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
             plt.axes(self.Chi_k.axes)
             self.setOfSnapshotSpectra.plotSpectra_chi_k_LinearComposition()
             # self.Chi_k.axes.invert_xaxis()
             self.Chi_k.axes.grid(True)
+            self.setAxesLimits_Chi()
+
+            # The formatting of tick labels is controlled by a Formatter object,
+            # which assuming you haven't done anything fancy will be a ScalerFormatterby default.
+            # This formatter will use a constant shift if the fractional change of the values visible is very small.
+            # To avoid this, simply turn it off:
+            self.FTR.axes.get_xaxis().get_major_formatter().set_scientific(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_scientific(False)
+
+            self.FTR.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+
+            # plt.subplots_adjust(top=0.85)
+            # gs1.tight_layout(fig, rect=[0, 0.03, 1, 0.95])
+            self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            self.figManager.window.setGeometry(1920, 20, 1920, 1180)
+
+            # plt.show()
+            plt.draw()
+            self.fig.suptitle(self.graph_title_txt, fontsize=self.suptitle_fontsize, fontweight='normal')
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            # self.figManager.window.setGeometry(780, 20, 800, 600)
+
+
+
+            self.figManager.window.setWindowTitle('Search the minimum and find the coordinates')
+            self.figManager.window.showMinimized()
+
+        if saveFigs and self.showFigs:
+            # save to the PNG file:
+            # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+            # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+            out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+    def updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k(self, saveFigs=True):
+
+        if self.showFigs:
+
+            # self.suptitle_txt = '$Fit$ $model$ $for$ $sample$: '+ \
+            #     '$Au[{0:1.3f}\AA]/Co[{1:1.3f}\AA]/CoO[{2:1.3f}\AA]/Au[{3:1.3f}\AA]/MgO[{4:1.3f}\AA]/MgCO_3[{5:1.3f}\AA]/Mg(OH)_2[{6:1.3f}\AA]/C[{7:1.3f}\AA]$'.format(
+            #     self.thicknessVector[0], self.thicknessVector[1], self.thicknessVector[2], self.thicknessVector[3],
+            #     self.thicknessVector[4], self.thicknessVector[5], self.thicknessVector[6], self.thicknessVector[7],
+            # )
+
+
+            self.fig.clf()
+            gs = gridspec.GridSpec(1, 2)
+
+            self.FTR.axes = self.fig.add_subplot(gs[0, 0])
+            plt.axes(self.FTR.axes)
+            self.setOfSnapshotSpectra.plotSpectra_FTR_r_LinearComposition_FTR_from_linear_Chi_k()
+            self.FTR.axes.grid(True)
+            self.setAxesLimits_FTR()
+
+            self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
+            plt.axes(self.Chi_k.axes)
+            self.setOfSnapshotSpectra.plotSpectra_chi_k_LinearComposition_FTR_from_linear_Chi_k()
+            # self.Chi_k.axes.invert_xaxis()
+            self.Chi_k.axes.grid(True)
+            self.setAxesLimits_Chi()
 
             # The formatting of tick labels is controlled by a Formatter object,
             # which assuming you haven't done anything fancy will be a ScalerFormatterby default.
@@ -454,6 +531,24 @@ class FTR_gulp_to_feff_A_model():
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Simple()
 
+                # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
+                self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
+                print('Linear FTR from Chi(k) composition has been calculated')
+                self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
+                number = number + 1
+                R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+                self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                self.currentValues.number = number
+                self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label
+                self.table.addRecord(self.currentValues)
+
+                self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
+                if R_tot < self.minimum.Rtot:
+                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                    self.graph_title_txt = 'model: ' + modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                        round(R_tot, 4))
+                    self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+
                 # ----- Linear Composition of Snapshots:
                 self.setOfSnapshotSpectra.calcLinearSpectraComposition()
                 print('Linear composition has been calculated')
@@ -471,6 +566,10 @@ class FTR_gulp_to_feff_A_model():
                     self.graph_title_txt = 'model: ' + modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Linear()
+
+
+
+
 
                 #     flush Dict of Set of Snapshots
                 self.setOfSnapshotSpectra.flushDictOfSpectra()
@@ -562,7 +661,7 @@ if __name__ == '__main__':
     # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
     a.weight_R_factor_FTR = 1.0
-    a.weight_R_factor_chi = 1.0
+    a.weight_R_factor_chi = 0.0
 
     a.calcAllSnapshotFiles()
     # a.calcSelectedSnapshotFile()
