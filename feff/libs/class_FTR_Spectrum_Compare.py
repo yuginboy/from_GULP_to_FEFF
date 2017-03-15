@@ -58,14 +58,14 @@ class FTR_gulp_to_feff_A_model():
         self.experiment.pathToLoadDataFile = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/result_1mono1SR2VasVga2_6.txt'
         self.experiment.label = 'average model'
         self.experiment.label_latex = 'average model'
-        self.experiment.loadSpectrumData()
+        # self.experiment.loadSpectrumData()
 
 
         self.theory_one = Spectrum()
         self.theory_one.pathToLoadDataFile = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_000002_00001.dat'
         self.theory_one.label = 'snapshot model'
         self.theory_one.label_latex = 'snapshot model'
-        self.theory_one.loadSpectrumData()
+        # self.theory_one.loadSpectrumData()
 
         # create object which will be collected serial snapshot spectra
         self.setOfSnapshotSpectra = SpectraSet()
@@ -505,6 +505,8 @@ class FTR_gulp_to_feff_A_model():
         self.projectWorkingFEFFoutDirectory = dir_path
         # search for experiment and theory files:
         self.getInDirectoryStandardFilePathes()
+        # load experiment/ideal curve:
+        self.experiment.loadSpectrumData()
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
@@ -533,6 +535,8 @@ class FTR_gulp_to_feff_A_model():
             # search for experiment and theory files:
             self.getInDirectoryStandardFilePathes()
             self.listOfSnapshotFiles = [file_path]
+            # load experiment/ideal curve:
+            self.experiment.loadSpectrumData()
             # set experiment spectra:
             self.set_ideal_curve_params()
             # start searching procedure:
