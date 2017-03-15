@@ -7,6 +7,7 @@
 from feff.libs.class_Spectrum import Spectrum
 import numpy as np
 from scipy.optimize import minimize
+from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 
 class SpectraSet():
@@ -96,7 +97,7 @@ class SpectraSet():
         self.result_simple.ftr_vector = tmp_ftr_vector
         self.coefficient_vector = x0/np.sum(x0)
 
-    def calcLinearSpectraComposition(self):
+    def calcLinearSpectraComposition(self, method='differential_evolution'):
         # calc the minimum of Rfactros minimum R_chi+R_ftr
         num = len(self.dictOfSpectra)
         x0 = np.zeros(num)
@@ -106,11 +107,23 @@ class SpectraSet():
             R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition()
             return R_tot
 
+        # create bounds:
+        bounds = []
+        for i in x0:
+            bounds.append((0, 1))
+
         # res_tmp = func(x0)
+        if method == 'minimize':
+            res = minimize(func, x0=x0, bounds=bounds, options={'gtol': 1e-6, 'disp': True})
+        elif method == 'differential_evolution':
+            res = differential_evolution(func, bounds)
 
-        res = minimize(func, x0=x0, options={'gtol': 1e-6, 'disp': True})
 
-        self.coefficient_vector = res.x / np.sum(res.x)
+        if np.sum(res.x) > 0:
+            self.coefficient_vector = res.x / np.sum(res.x)
+        else:
+            self.coefficient_vector = res.x
+
         self.result.chi_vector = []
         self.result.ftr_vector = []
 
@@ -142,7 +155,7 @@ class SpectraSet():
         num = len(self.dictOfSpectra)
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            txt = txt + '{0}*'.format(round(self.coefficient_vector[i-1], 4)) + val['data'].label
+            txt = txt + '{0}*'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
             if i < num-1:
                 txt = txt + ' + '
         self.result_simple.label_latex = txt
@@ -154,7 +167,7 @@ class SpectraSet():
         num = len(self.dictOfSpectra)
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            txt = txt + '{0}*'.format(round(self.coefficient_vector[i-1], 4)) + val['data'].label
+            txt = txt + '{0}*'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
             if i < num-1:
                 txt = txt + ' + '
         self.result.label_latex = txt

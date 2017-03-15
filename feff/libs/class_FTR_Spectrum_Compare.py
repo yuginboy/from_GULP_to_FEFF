@@ -557,11 +557,11 @@ if __name__ == '__main__':
 
     # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
-    a.weight_R_factor_FTR = 1
-    a.weight_R_factor_chi = 0.0
+    a.weight_R_factor_FTR = 1.0
+    a.weight_R_factor_chi = 1.0
 
-    a.calcAllSnapshotFiles()
-
+    # a.calcAllSnapshotFiles()
+    a.calcSelectedSnapshotFile()
 
     # # start calculate only snapshot file:
     # a = FTR_gulp_to_feff_A_model()

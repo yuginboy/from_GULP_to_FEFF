@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 import os
 from feff.libs.dir_and_file_operations import get_folder_name, runningScriptDir
 from feff.libs.load_chi_data_file import load_and_apply_xftf, load_chi_data
+from scipy.optimize import differential_evolution
 
 root = tk.Tk()
 root.withdraw()
@@ -105,7 +106,11 @@ fullArra = calc(step, ft1, ft2)
 minR = np.amin(fullArra, axis=0)
 aminX=np.argmin(fullArra, axis=0)[0]
 
-res = minimize(func, x0=[0, 0], options={'gtol': 1e-6, 'disp': True})
+bounds = [(0, 1),
+          (0, 1)]
+res = minimize(func, x0=[10, 20], bounds=bounds, options={'gtol': 1e-6, 'disp': True})
+
+# res = differential_evolution(func, bounds)
 print(res)
 res.x = res.x/np.sum(res.x)
 
@@ -123,7 +128,7 @@ plt.plot(r2, ft2,c='g', lw=2, label='model 2')
 plt.plot(rex, ftex,c='k', lw = 2, label='aver theor')
 # plt.plot(r1, ft1*(1-fullArra[aminX,1]) + ft2*fullArra[aminX,1], ls='-', marker='o', c='c', label='best fit')
 
-plt.plot(r1, linearFuncOfTwoSpectra([0.2054, 0.7946], ft1, ft2), ls='-', marker='o', c='c', label='best fit')
+plt.plot(r1, linearFuncOfTwoSpectra([0.7946, 0.2054], ft1, ft2), ls='-', marker='o', c='c', label='best fit')
 # plt.text(3, 0.18, '$R$-$factor$ = {0}, $x$ = {1}'.format(round(minR[0],4), round(fullArra[aminX,1],4)), fontdict={'size': 20})
 plt.text(3, 0.18, '$R$-$factor$ = {0}, $x$ = {1}'.format(round(res.fun,4), round(res.x[0],4)), fontdict={'size': 20})
 # plt.axis([1, 5, 0, yMax])
