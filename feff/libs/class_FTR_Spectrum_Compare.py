@@ -450,7 +450,7 @@ class FTR_gulp_to_feff_A_model():
                 self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_simple)
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model: ' + modelName + ',simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                    self.graph_title_txt = 'model: ' + modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Simple()
 
@@ -468,7 +468,7 @@ class FTR_gulp_to_feff_A_model():
                 self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result)
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model: ' + modelName + ',linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                    self.graph_title_txt = 'model: ' + modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Linear()
 
@@ -560,8 +560,8 @@ if __name__ == '__main__':
     a.weight_R_factor_FTR = 1.0
     a.weight_R_factor_chi = 1.0
 
-    # a.calcAllSnapshotFiles()
-    a.calcSelectedSnapshotFile()
+    a.calcAllSnapshotFiles()
+    # a.calcSelectedSnapshotFile()
 
     # # start calculate only snapshot file:
     # a = FTR_gulp_to_feff_A_model()
