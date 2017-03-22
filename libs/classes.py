@@ -5,7 +5,10 @@ from libs.inputheader import writeHeaderToInpFile
 from libs.dir_and_file_operations import create_out_data_folder
 import os
 from libs.average_rdf import AverageRDF
-
+def angstrom_to_bohr(x=0):
+    return x*1.8897259885789 # 1 angstrom [Å] = 1.8897259885789 Bohr radius [b, a.u.]
+def bohr_to_angstrom(x=0):
+    return x/1.8897259885789 # 1 angstrom [Å] = 1.8897259885789 Bohr radius [b, a.u.]
 
 class Unitcell(AverageRDF):
     def __init__(self, numOfAtoms=1):
@@ -30,12 +33,14 @@ class Unitcell(AverageRDF):
         self.tag[:] = 'H'
         self.r = np.zeros(numOfAtoms)
         self.ipot = np.zeros(numOfAtoms, dtype='int')
-        self.outDirFEFF = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
-        self.outDirXYZ = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
-        self.outDirRDF = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
-        self.outDirXSF = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
-        self.outDirCFG = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
-        self.outDirAverFeffInp = 'C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test'
+        self.outDirFEFF =        'test'
+        self.outDirXYZ =         'test'
+        self.outDirRDF =         'test'
+        self.outDirXSF =         'test'
+        self.outDirCFG =         'test'
+        self.outDirAverFeffInp = 'test'
+        self.outDirSCF =         'test'
+        self.scfPseudoDirPath = '/home/yugin/installed/qe-6.1/pseudo/'
 
         # file name:
         self.outNameFEFF = 'feff'
@@ -44,6 +49,7 @@ class Unitcell(AverageRDF):
         self.outNameXSF = 'struct'
         self.outNameCFG = 'stem'
         self.outNameAverFeffInp = 'aver_inp'
+        self.outNameSCF = 'scf_in'
 
         # rdfDist is vector of distances for radial distribution calculation:
         self.rdfDist = np.linspace(0, 6, 4)
@@ -89,7 +95,7 @@ class Unitcell(AverageRDF):
                   .format(self.x[i], self.y[i], self.z[i], self.ipot[i], self.tag[i], self.r[i], self.atomIndex[i] + 1))
 
     def writeTableToFile(self,
-                         filename='C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test\\test.txt',
+                         filename='test.txt',
                          overwriteOrNot=True):
         # writing table of coordinates and attributes of atoms to file
         if overwriteOrNot:
@@ -110,7 +116,7 @@ class Unitcell(AverageRDF):
         file.close()
 
     def writeTableToXYZfile(self,
-                            filename='C:\\wien2k_ver14\\VirtualBoxShare\\MD_FEFF_sim\\test\\test.xyz',
+                            filename='test.xyz',
                             overwriteOrNot=True):
         # writing table of coordinates and attributes of atoms to file
         if overwriteOrNot:
@@ -125,6 +131,130 @@ class Unitcell(AverageRDF):
                 .format(self.tag[i], self.x[i], self.y[i], self.z[i]).replace('+', ' ')
             file.write(line)
         file.close()
+
+    def write_relative_xyz_TableTofile(self,
+                            filename='test.xyz',
+                            overwriteOrNot=True):
+        # writing table of relative coordinates and attributes of atoms to file
+        # prepare table for scf.in file
+        if overwriteOrNot:
+            file = open(filename, 'w')
+        else:
+            file = open(filename, 'a+')
+
+        for i in range(0, len(self.x), 1):
+            line = '{0}\t{1:+.9f}\t{2:+.9f}\t{3:+.9f}\n' \
+                .format(self.tag[i], self.x[i] / self.HO[0, 0], self.y[i] / self.HO[1, 1],
+                        self.z[i] / self.HO[2, 2]).replace('+', ' ')
+            file.write(line)
+        file.close()
+
+    def create_SCF_header(self, prefix='tmp_scf'):
+        # prepare header for scf.in file
+        uniqTags, uniqTagsCounts = np.unique(self.tag, return_counts=True)
+        txt = ''
+        # control part:
+        txt = txt + '&control\n'
+        txt = txt + '  calculation = \'scf\'\n'
+        txt = txt + '  restart_mode=\'from_scratch\'\n'
+        txt = txt + '  prefix=\'{0}\'\n'.format(prefix)
+        txt = txt + '  pseudo_dir=\'{0}\'\n'.format(self.scfPseudoDirPath)
+        txt = txt + '  outdir=\'./\'\n'
+        txt = txt + '  verbosity=\'high\'\n'
+        txt = txt + '  max_seconds=165600\n'
+        txt = txt + '/\n'
+
+        # system part:
+        txt = txt + '&system\n'
+        txt = txt + '  ibrav=1,\n'
+        txt = txt + '  nat={0},\n'.format(len(self.x))
+        txt = txt + '  ntyp={0},\n'.format(len(uniqTags))
+        txt = txt + '  celldm(1)={0:9f}\n'.format(angstrom_to_bohr(self.HO[0, 0]))
+        txt = txt + '  ecutwfc=30\n'
+        txt = txt + '  ecutrho=300\n'
+        txt = txt + '  occupations=\'smearing\', smearing=\'gaussian\', degauss=0.0025D0\n'
+        txt = txt + '  nspin=2\n'
+        txt = txt + '  starting_magnetization(1)=0.8\n'
+        txt = txt + '  tot_charge=0.0\n'
+        txt = txt + '/\n'
+
+        # electrons part:
+        txt = txt + '&electrons\n'
+        txt = txt + '  electron_maxstep=100,\n'
+        txt = txt + '  diagonalization=\'david\',\n'
+        txt = txt + '  conv_thr =  1.0d-06,\n'
+        txt = txt + '  mixing_beta = 0.4,\n'
+        txt = txt + '/\n'
+
+        # ions part:
+        txt = txt + '&ions\n'
+        txt = txt + '  ion_dynamics=\'bfgs\'\n'
+        txt = txt + '/\n'
+
+        # cell part:
+        txt = txt + '&cell\n'
+        txt = txt + '  cell_dynamics=\'bfgs\'\n'
+        txt = txt + '  cell_dofree=\'xyz\'\n'
+        txt = txt + '/\n'
+
+        # ATOMIC_SPECIES part:
+        txt = txt + 'ATOMIC_SPECIES\n'
+        txt = txt + '  Mn  54.938   Mn.pbe-sp-van_mit.UPF\n'
+        txt = txt + '  Ga  69.723   Ga.pbe-n-van.UPF\n'
+        txt = txt + '  As  74.9216  As.pbe-n-van.UPF\n'
+        txt = txt + '\n'
+
+        # K_POINTS part:
+        txt = txt + 'K_POINTS { automatic }\n'
+        txt = txt + '2 2 2 1 1 1\n'
+        txt = txt + '\n'
+
+
+        # if CELL_PARAMETERS is not commented then we obtain error:
+        # Error in routine cell_base_init (2):
+        # redundant data for cell parameters
+        # # CELL_PARAMETERS part:
+        # txt = txt + 'CELL_PARAMETERS (alat= {0:9f})\n'.format(angstrom_to_bohr(self.HO[0, 0]))
+        # txt = txt + '   1.000000000   0.000000000   0.000000000\n'
+        # txt = txt + '   0.000000000   1.000000000   0.000000000\n'
+        # txt = txt + '   0.000000000   0.000000000   1.000000000\n'
+        # txt = txt + '\n'
+
+        # ATOMIC_POSITIONS part:
+        txt = txt + 'ATOMIC_POSITIONS (crystal)\n'
+
+        return txt
+
+    def writeSCFtoFile (self, filename='test.in', overwriteOrNot=True):
+        # write header and relative coordinates table to the file:
+        if overwriteOrNot:
+            file = open(filename, 'w')
+        else:
+            file = open(filename, 'a+')
+        prefix = os.path.basename(filename).split('.')[0]
+        header = self.create_SCF_header(prefix=prefix)
+        # write header:
+        file.write(header)
+        file.close()
+        # write relative coordinates table:
+        self.write_relative_xyz_TableTofile(filename=filename, overwriteOrNot=False)
+
+
+    def writeSCFfileSeq(self, ext='in'):
+        # write SCF file in Seq mode:
+        mask = self.outNameSCF + '_'
+        numOfRepeat = self.tag.tolist().count(self.majorElemTag)
+        folder = self.outDirSCF
+        filename = os.path.join(folder, 'test.' + ext)
+        self.backUpStruct()
+        vectorIndex = (self.tag == self.majorElemTag).nonzero()[0].tolist()
+        for i in range(0, numOfRepeat, 1):
+            self.centrShift(centrAtomIndex=vectorIndex[i])
+            fn = createUniqFile(filename, mask=mask)
+            self.writeSCFtoFile(filename=fn, overwriteOrNot=True)
+            self.restoreFromBackUp()
+
+
 
     def centrShift(self, centrAtomIndex=1):
         # Shift atoms in orogon structure relative choosen position (x,y,z)
@@ -293,6 +423,9 @@ class Unitcell(AverageRDF):
         # for FEFF calculation:
         self.outDirFEFFCalc = create_out_data_folder(projectDir, first_part_of_folder_name='feff_')
         self.outDirFEFFtmp = create_out_data_folder(projectDir, first_part_of_folder_name='tmp_')
+
+        # for PWScf (Quantum Espresso):
+        self.outDirSCF = create_out_data_folder(projectDir, first_part_of_folder_name='scf_')
 
     def calcRDF(self):
         """

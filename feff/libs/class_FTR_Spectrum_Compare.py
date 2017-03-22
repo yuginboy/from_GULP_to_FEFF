@@ -32,7 +32,7 @@ class FTR_gulp_to_feff_A_model():
         self.currentValues.fill_initials()
 
         # How many serial snapshots from different center atoms we have:
-        self.numberOfSerialEquivalentAtoms = 4
+        self.numberOfSerialEquivalentAtoms = 2
 
         # store to the ASCII table on a file:
         self.table = TableData()
@@ -486,6 +486,8 @@ class FTR_gulp_to_feff_A_model():
 
         for filePath in self.listOfSnapshotFiles:
             number = number + 1
+            print('==> file is: {0}'.format(filePath))
+            print('==> Number is: {0}'.format(number))
             currentSerialSnapNumber = currentSerialSnapNumber + 1
             self.theory_one.pathToLoadDataFile = filePath
             self.theory_one.loadSpectrumData()

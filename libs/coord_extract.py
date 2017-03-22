@@ -32,6 +32,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
     atomInSnapshot.outNameRDF = os.path.basename(file.name).split('.')[0]
     atomInSnapshot.structName = os.path.basename(file.name).split('.')[0]
     atomInSnapshot.outNameAverFeffInp = os.path.basename(file.name).split('.')[0]
+    atomInSnapshot.outNameSCF = os.path.basename(file.name).split('.')[0]
     l = 0
     bar = progressbar.ProgressBar(maxval = len(timestep),\
                                    widgets = [progressbar.Bar('=', '[', ']'), ' ',
@@ -75,6 +76,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
                 # когда номер строки равен номеру строки с началом следуюшего снапшота, то увеличиваем номер
                 # текущего снапшота на единицу
                 atomInSnapshot.writeFeffInpFileSeq()
+                atomInSnapshot.writeSCFfileSeq()
                 atomInSnapshot.writeRDFfileSeq()
                 atomInSnapshot.xAver = np.column_stack((atomInSnapshot.xAver, atomInSnapshot.x))# X
                 atomInSnapshot.yAver = np.column_stack((atomInSnapshot.yAver, atomInSnapshot.y))# Y
