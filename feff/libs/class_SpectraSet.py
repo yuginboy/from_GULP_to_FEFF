@@ -39,6 +39,8 @@ class SpectraSet():
         self.coefficient_vector = []
         self.coefficient_vector_FTR_from_linear_Chi_k = []
 
+
+
     def set_ideal_curve_params(self):
         self.result.ideal_curve_ftr = self.target.ftr_vector
         self.result.ideal_curve_r =   self.target.r_vector
@@ -159,6 +161,8 @@ class SpectraSet():
         def func(x):
             # print(x)
             self.result_FTR_from_linear_Chi_k.chi_vector, self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+            self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
+                                                           * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
             R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
             return R_tot
 
@@ -184,7 +188,7 @@ class SpectraSet():
 
         tmp_chi_vector, tmp_ftr_vector = self.func_FTR_from_linear_Chi_k(self.coefficient_vector_FTR_from_linear_Chi_k)
         self.result_FTR_from_linear_Chi_k.chi_vector = tmp_chi_vector
-        self.result_FTR_from_linear_Chi_k.ftr_vector = tmp_ftr_vector
+        self.result_FTR_from_linear_Chi_k.ftr_vector = tmp_ftr_vector * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
 
     def get_R_factor_SimpleComposition(self):
         R_chi = self.result_simple.get_chi_R_factor()

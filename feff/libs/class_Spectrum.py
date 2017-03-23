@@ -150,16 +150,21 @@ class Spectrum (object):
         # the coefficient of intensities scaling in FTR dimention:
         self.scale_factor = 1
 
+        # coefficient for multiplying theory spectra in FTR space
+        self.scale_theory_factor_FTR = 1
+        # coefficient for multiplying theory spectra in CHI space
+        self.scale_theory_factor_CHI = 1
+
 
     def loadSpectrumData(self):
         # load data from ASCII file:
         data = load_chi_data(self.pathToLoadDataFile)
         self.k_vector   = data[:, 0]
-        self.chi_vector = data[:, 1]
+        self.chi_vector = self.scale_theory_factor_CHI * data[:, 1]
 
         data = load_and_apply_xftf(self.pathToLoadDataFile)
         self.r_vector   = data[0]
-        self.ftr_vector = data[2] # get only the Real-part of values
+        self.ftr_vector = self.scale_theory_factor_FTR * data[2] # get only the Real-part of values
 
     def plotOneSpectrum_chi_k(self):
         plt.plot(self.k_vector, self.chi_vector, lw=2, label=self.label_latex)

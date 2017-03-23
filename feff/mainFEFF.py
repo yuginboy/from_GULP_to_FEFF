@@ -123,7 +123,7 @@ def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath 
             print('copy the chi.dat to the ->', )
             # create a new name to the chi.dat output file:
             # chiOutName = "chi_%05d.dat" %(i)
-            chiOutName = 'chi_' + currentFileName + "_%05d.dat" %(i)
+            chiOutName = 'chi_' + currentFileName + "_%05d.dat" %(i+1)
             copyfile(os.path.join(tmpPath, 'chi.dat'), os.path.join(outDirPath, chiOutName))
             print('feff calculation is finished')
 

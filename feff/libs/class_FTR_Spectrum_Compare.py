@@ -42,6 +42,11 @@ class FTR_gulp_to_feff_A_model():
         self.weight_R_factor_FTR = 1
         self.weight_R_factor_chi = 1
 
+        # coefficient for multiplying theory spectra in FTR space
+        self.scale_theory_factor_FTR = 1
+        # coefficient for multiplying theory spectra in CHI space
+        self.scale_theory_factor_CHI = 1
+
         self.FTR = GraphElement()
         self.Chi_k = GraphElement()
         self.suptitle_fontsize = 18
@@ -50,6 +55,7 @@ class FTR_gulp_to_feff_A_model():
         self.listOfSnapshotFiles = []
         # out dir for  Rfactor minimum files:
         self.outMinValsDir = ''
+        self.outMinValsDir_mask = ''
 
         self.graph_title_txt = 'model name'
         self.showFigs = True
@@ -70,8 +76,8 @@ class FTR_gulp_to_feff_A_model():
         # create object which will be collected serial snapshot spectra
         self.setOfSnapshotSpectra = SpectraSet()
 
-        self.theory_SimpleComposition = Spectrum()
-        self.theory_LinearComposition = Spectrum()
+        # self.theory_SimpleComposition = Spectrum()
+        # self.theory_LinearComposition = Spectrum()
 
 
         self.set_ideal_curve_params()
@@ -89,6 +95,7 @@ class FTR_gulp_to_feff_A_model():
         self.theory_one.ideal_curve_r =   self.experiment.r_vector
         self.theory_one.ideal_curve_k =   self.experiment.k_vector
         self.theory_one.ideal_curve_chi = self.experiment.chi_vector
+        self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
 
     def get_name_of_model_from_fileName(self):
         modelName = os.path.split(os.path.split(os.path.dirname(self.theory_one.pathToLoadDataFile))[0])[1]
@@ -99,8 +106,14 @@ class FTR_gulp_to_feff_A_model():
 
     def updateInfo(self):
         modelName, snapNumberStr = self.get_name_of_model_from_fileName()
-        self.graph_title_txt = 'model: ' + modelName + ', $R_{{tot}}$  = {0}'.format(round(self.get_R_factor()[0], 4))
-        self.theory_one.label_latex = 'snapshot: {0}'.format(snapNumberStr)
+        if self.scale_theory_factor_FTR == 1:
+            self.graph_title_txt = 'model: ' + modelName + ', $R_{{tot}}$  = {0}'.format(round(self.get_R_factor()[0], 4))
+            self.theory_one.label_latex = 'snapshot: {0}'.format(snapNumberStr)
+        else:
+            self.graph_title_txt = 'model: ' + modelName + ', $R_{{tot}}$  = {0}, $\sigma^2$ = {1:1.3f}'.format(
+                round(self.get_R_factor()[0], 4), self.scale_theory_factor_FTR)
+            self.theory_one.label_latex = 'snapshot [$\sigma^2$ = {1:1.3f}]: {0}'.format(snapNumberStr, self.scale_theory_factor_FTR)
+
         self.theory_one.label = snapNumberStr
 
     def get_R_factor(self):
@@ -271,7 +284,11 @@ class FTR_gulp_to_feff_A_model():
             # save to the PNG file:
             # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
             modelName, snapNumberStr = self.get_name_of_model_from_fileName()
-            out_file_name =  snapNumberStr + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            if self.scale_theory_factor_FTR == 1:
+                out_file_name =  snapNumberStr + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            else:
+                out_file_name =  snapNumberStr + '_ss={1:1.3f}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                                                                                    self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
     def updatePlotOfSnapshotsComposition_Simple(self, saveFigs=True):
 
@@ -335,7 +352,11 @@ class FTR_gulp_to_feff_A_model():
             # save to the PNG file:
             # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
             # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
-            out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            if self.scale_theory_factor_FTR == 1:
+                out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            else:
+                out_file_name =  self.theory_one.label + '_ss={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                                                                                           self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
     def updatePlotOfSnapshotsComposition_Linear(self, saveFigs=True):
 
@@ -399,7 +420,11 @@ class FTR_gulp_to_feff_A_model():
             # save to the PNG file:
             # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
             # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
-            out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            if self.scale_theory_factor_FTR == 1:
+                out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            else:
+                out_file_name =  self.theory_one.label + '_ss={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                                                                                           self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
     def updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k(self, saveFigs=True):
 
@@ -463,19 +488,31 @@ class FTR_gulp_to_feff_A_model():
             # save to the PNG file:
             # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
             # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
-            out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            if self.scale_theory_factor_FTR == 1:
+                out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+            else:
+                out_file_name =  self.theory_one.label + '_ss={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                                                                                           self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def findBestSnapshotFromList(self):
 
+        if self.scale_theory_factor_FTR == 1:
+            mask_ss = ''
+        else:
+            mask_ss = '_ss={0:1.3f}'.format(self.scale_theory_factor_FTR)
+
+        mask_ss = mask_ss + self.outMinValsDir_mask
+
         if (self.weight_R_factor_FTR / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
-                                                        first_part_of_folder_name='Rmin=Rchi')
+                                                        first_part_of_folder_name='Rmin=Rchi'+mask_ss)
         elif (self.weight_R_factor_chi / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
-                                                        first_part_of_folder_name='Rmin=Rftr')
+                                                        first_part_of_folder_name='Rmin=Rftr'+mask_ss)
         else:
-            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory, first_part_of_folder_name='Rmin=Rtot')
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+                                                        first_part_of_folder_name='Rmin=Rtot'+mask_ss)
         self.setupAxes()
         number = 0
 
@@ -490,15 +527,31 @@ class FTR_gulp_to_feff_A_model():
             print('==> Number is: {0}'.format(number))
             currentSerialSnapNumber = currentSerialSnapNumber + 1
             self.theory_one.pathToLoadDataFile = filePath
+            self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
             self.theory_one.loadSpectrumData()
             self.updateInfo()
 
             modelName, snapNumberStr = self.get_name_of_model_from_fileName()
 
             currentSpectra = copy.deepcopy(self.theory_one)
+
             self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra)
             self.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
             self.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+            self.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
+                self.experiment.label_latex_ideal_curve
+
+            self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+
+            self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = self.scale_theory_factor_CHI
 
             R_tot, R_ftr, R_chi = self.get_R_factor()
 
@@ -527,9 +580,11 @@ class FTR_gulp_to_feff_A_model():
                 self.table.addRecord(self.currentValues)
 
                 self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_simple)
+                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model: ' + modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                    self.graph_title_txt = 'model [$\sigma^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                           modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Simple()
 
@@ -545,9 +600,11 @@ class FTR_gulp_to_feff_A_model():
                 self.table.addRecord(self.currentValues)
 
                 self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
+                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model: ' + modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                    self.graph_title_txt = 'model [$\sigma^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                           modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(R_tot, 4))
                     self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
 
@@ -563,9 +620,11 @@ class FTR_gulp_to_feff_A_model():
                 self.table.addRecord(self.currentValues)
 
                 self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result)
+                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model: ' + modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                    self.graph_title_txt = 'model [$\sigma^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                           modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Linear()
 
@@ -581,7 +640,8 @@ class FTR_gulp_to_feff_A_model():
         self.table.outDirPath = self.outMinValsDir
         timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
         # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
-        self.table.outFileName = modelName + timestamp + '_R={0:1.4}.txt'.format(self.minimum.Rtot)
+        self.table.outFileName = modelName + timestamp + '_ss={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
+                                                                                             self.scale_theory_factor_FTR)
         self.table.writeToASCIIFile()
 
     def calcAllSnapshotFiles(self):
@@ -608,6 +668,108 @@ class FTR_gulp_to_feff_A_model():
         self.getInDirectoryStandardFilePathes()
         # load experiment/ideal curve:
         self.experiment.loadSpectrumData()
+        # set experiment spectra:
+        self.set_ideal_curve_params()
+        # start searching procedure:
+        self.findBestSnapshotFromList()
+    def calcAllSnapshotFiles_350(self):
+        '''
+        main method to run searching procedure of minimum R-factor snapshot
+        compare with 350.chik in data folder
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        root.withdraw()
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
+        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '350.chik')
+        # load experiment/ideal curve:
+        self.experiment.loadSpectrumData()
+        self.experiment.label_latex_ideal_curve = 'T=350$^{\circ}$'
+        self.outMinValsDir_mask = '_T=350_'
+
+        # set experiment spectra:
+        self.set_ideal_curve_params()
+        # start searching procedure:
+        self.findBestSnapshotFromList()
+    def calcAllSnapshotFiles_450(self):
+        '''
+        main method to run searching procedure of minimum R-factor snapshot
+        compare with 350.chik in data folder
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        root.withdraw()
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
+        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '450.chik')
+        # load experiment/ideal curve:
+        self.experiment.loadSpectrumData()
+        self.experiment.label_latex_ideal_curve = 'T=450$^{\circ}$'
+        self.outMinValsDir_mask = '_T=450_'
+
+        # set experiment spectra:
+        self.set_ideal_curve_params()
+        # start searching procedure:
+        self.findBestSnapshotFromList()
+    def calcAllSnapshotFiles_250(self):
+        '''
+        main method to run searching procedure of minimum R-factor snapshot
+        compare with 350.chik in data folder
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        root.withdraw()
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
+        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '250.chik')
+        # load experiment/ideal curve:
+        self.experiment.loadSpectrumData()
+        self.experiment.label_latex_ideal_curve = 'T=250$^{\circ}$'
+        self.outMinValsDir_mask = '_T=250_'
+
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
@@ -664,8 +826,9 @@ if __name__ == '__main__':
     a = FTR_gulp_to_feff_A_model()
     a.weight_R_factor_FTR = 1.0
     a.weight_R_factor_chi = 0.0
+    a.scale_theory_factor_FTR = 0.81
 
-    a.calcAllSnapshotFiles()
+    a.calcAllSnapshotFiles_350()
     # a.calcSelectedSnapshotFile()
 
     # # start calculate only snapshot file:

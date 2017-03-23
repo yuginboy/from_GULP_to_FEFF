@@ -40,7 +40,7 @@ class Unitcell(AverageRDF):
         self.outDirCFG =         'test'
         self.outDirAverFeffInp = 'test'
         self.outDirSCF =         'test'
-        self.scfPseudoDirPath = '/home/yugin/installed/qe-6.1/pseudo/'
+        self.scfPseudoDirPath = '~/installed/qe-6.1/pseudo/'
 
         # file name:
         self.outNameFEFF = 'feff'
