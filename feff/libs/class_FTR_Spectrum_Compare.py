@@ -44,6 +44,8 @@ class FTR_gulp_to_feff_A_model():
 
         # coefficient for multiplying theory spectra in FTR space
         self.scale_theory_factor_FTR = 1
+        self.scale_experiment_factor_FTR = 1
+
         # coefficient for multiplying theory spectra in CHI space
         self.scale_theory_factor_CHI = 1
 
@@ -668,6 +670,7 @@ class FTR_gulp_to_feff_A_model():
         self.getInDirectoryStandardFilePathes()
         # load experiment/ideal curve:
         self.experiment.loadSpectrumData()
+        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
@@ -699,6 +702,7 @@ class FTR_gulp_to_feff_A_model():
         self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '350.chik')
         # load experiment/ideal curve:
         self.experiment.loadSpectrumData()
+        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
         self.experiment.label_latex_ideal_curve = 'T=350$^{\circ}$'
         self.outMinValsDir_mask = '_T=350_'
 
@@ -733,6 +737,7 @@ class FTR_gulp_to_feff_A_model():
         self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '450.chik')
         # load experiment/ideal curve:
         self.experiment.loadSpectrumData()
+        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
         self.experiment.label_latex_ideal_curve = 'T=450$^{\circ}$'
         self.outMinValsDir_mask = '_T=450_'
 
@@ -767,8 +772,44 @@ class FTR_gulp_to_feff_A_model():
         self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '250.chik')
         # load experiment/ideal curve:
         self.experiment.loadSpectrumData()
+        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
         self.experiment.label_latex_ideal_curve = 'T=250$^{\circ}$'
         self.outMinValsDir_mask = '_T=250_'
+
+        # set experiment spectra:
+        self.set_ideal_curve_params()
+        # start searching procedure:
+        self.findBestSnapshotFromList()
+    def calcAllSnapshotFiles_AG(self):
+        '''
+        main method to run searching procedure of minimum R-factor snapshot
+        compare with 350.chik in data folder
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        root.withdraw()
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
+        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', 'AG.chik')
+        # load experiment/ideal curve:
+        self.experiment.loadSpectrumData()
+        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
+        self.experiment.label_latex_ideal_curve = 'as grown'
+        self.outMinValsDir_mask = '_as_grown_'
 
         # set experiment spectra:
         self.set_ideal_curve_params()
@@ -825,10 +866,11 @@ if __name__ == '__main__':
     # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
     a.weight_R_factor_FTR = 1.0
-    a.weight_R_factor_chi = 0.0
+    a.weight_R_factor_chi = 0.23
     a.scale_theory_factor_FTR = 0.81
+    a.scale_experiment_factor_FTR = 1.0
 
-    a.calcAllSnapshotFiles_350()
+    a.calcAllSnapshotFiles_450()
     # a.calcSelectedSnapshotFile()
 
     # # start calculate only snapshot file:
