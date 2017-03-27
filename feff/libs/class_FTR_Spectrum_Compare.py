@@ -103,7 +103,9 @@ class FTR_gulp_to_feff_A_model():
         modelName = os.path.split(os.path.split(os.path.dirname(self.theory_one.pathToLoadDataFile))[0])[1]
         name = os.path.split(os.path.basename(self.theory_one.pathToLoadDataFile))[1]
         name = name.split('.')[0]
+        # take only the number of snapshot:
         snapNumberStr = name.split('chi_'+modelName+'_')[1]
+        snapNumberStr = snapNumberStr.split('_')[0]
         return modelName, snapNumberStr
 
     def updateInfo(self):
@@ -112,9 +114,9 @@ class FTR_gulp_to_feff_A_model():
             self.graph_title_txt = 'model: ' + modelName + ', $R_{{tot}}$  = {0}'.format(round(self.get_R_factor()[0], 4))
             self.theory_one.label_latex = 'snapshot: {0}'.format(snapNumberStr)
         else:
-            self.graph_title_txt = 'model: ' + modelName + ', $R_{{tot}}$  = {0}, $\sigma^2$ = {1:1.3f}'.format(
+            self.graph_title_txt = 'model: ' + modelName + ', $R_{{tot}}$  = {0}, $S_0^2$ = {1:1.3f}'.format(
                 round(self.get_R_factor()[0], 4), self.scale_theory_factor_FTR)
-            self.theory_one.label_latex = 'snapshot [$\sigma^2$ = {1:1.3f}]: {0}'.format(snapNumberStr, self.scale_theory_factor_FTR)
+            self.theory_one.label_latex = 'snapshot [$S_0^2$ = {1:1.3f}]: {0}'.format(snapNumberStr, self.scale_theory_factor_FTR)
 
         self.theory_one.label = snapNumberStr
 
@@ -289,7 +291,7 @@ class FTR_gulp_to_feff_A_model():
             if self.scale_theory_factor_FTR == 1:
                 out_file_name =  snapNumberStr + '_R={0:1.4}.png'.format(self.minimum.Rtot)
             else:
-                out_file_name =  snapNumberStr + '_ss={1:1.3f}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                out_file_name =  snapNumberStr + '_So={1:1.3f}_R={0:1.4}.png'.format(self.minimum.Rtot,
                                                                                     self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
     def updatePlotOfSnapshotsComposition_Simple(self, saveFigs=True):
@@ -357,7 +359,7 @@ class FTR_gulp_to_feff_A_model():
             if self.scale_theory_factor_FTR == 1:
                 out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
             else:
-                out_file_name =  self.theory_one.label + '_ss={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                out_file_name =  self.theory_one.label + '_So={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
                                                                                            self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
     def updatePlotOfSnapshotsComposition_Linear(self, saveFigs=True):
@@ -425,7 +427,7 @@ class FTR_gulp_to_feff_A_model():
             if self.scale_theory_factor_FTR == 1:
                 out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
             else:
-                out_file_name =  self.theory_one.label + '_ss={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                out_file_name =  self.theory_one.label + '_So={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
                                                                                            self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
     def updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k(self, saveFigs=True):
@@ -493,7 +495,7 @@ class FTR_gulp_to_feff_A_model():
             if self.scale_theory_factor_FTR == 1:
                 out_file_name =  self.theory_one.label + '_R={0:1.4}.png'.format(self.minimum.Rtot)
             else:
-                out_file_name =  self.theory_one.label + '_ss={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
+                out_file_name =  self.theory_one.label + '_So={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
                                                                                            self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
@@ -502,7 +504,7 @@ class FTR_gulp_to_feff_A_model():
         if self.scale_theory_factor_FTR == 1:
             mask_ss = ''
         else:
-            mask_ss = '_ss={0:1.3f}'.format(self.scale_theory_factor_FTR)
+            mask_ss = '_So={0:1.3f}'.format(self.scale_theory_factor_FTR)
 
         mask_ss = mask_ss + self.outMinValsDir_mask
 
@@ -585,7 +587,7 @@ class FTR_gulp_to_feff_A_model():
                 self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model [$\sigma^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                    self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
                                            modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Simple()
@@ -605,7 +607,7 @@ class FTR_gulp_to_feff_A_model():
                 self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model [$\sigma^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                    self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
                                            modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(R_tot, 4))
                     self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
@@ -625,7 +627,7 @@ class FTR_gulp_to_feff_A_model():
                 self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                 if R_tot < self.minimum.Rtot:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model [$\sigma^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                    self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
                                            modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
                     self.updatePlotOfSnapshotsComposition_Linear()
@@ -642,7 +644,7 @@ class FTR_gulp_to_feff_A_model():
         self.table.outDirPath = self.outMinValsDir
         timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
         # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
-        self.table.outFileName = modelName + timestamp + '_ss={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
+        self.table.outFileName = modelName + timestamp + '_So={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
                                                                                              self.scale_theory_factor_FTR)
         self.table.writeToASCIIFile()
 
@@ -866,11 +868,14 @@ if __name__ == '__main__':
     # start global searching procedure:
     a = FTR_gulp_to_feff_A_model()
     a.weight_R_factor_FTR = 1.0
-    a.weight_R_factor_chi = 0.23
+    a.weight_R_factor_chi = 0.0
     a.scale_theory_factor_FTR = 0.81
     a.scale_experiment_factor_FTR = 1.0
 
-    a.calcAllSnapshotFiles_450()
+    # a.calcAllSnapshotFiles_450()
+    # a.calcAllSnapshotFiles_350()
+    # a.calcAllSnapshotFiles_250()
+    a.calcAllSnapshotFiles_AG()
     # a.calcSelectedSnapshotFile()
 
     # # start calculate only snapshot file:
