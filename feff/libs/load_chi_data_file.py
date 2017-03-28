@@ -46,9 +46,9 @@ def load_chi_data(file_path):
         print('number of elements is: ', len(data[:, 0]), ' the first k-element is: ', data[0, 0])
     return chi
 
-def load_and_apply_xftf(file_path):
+def load_and_apply_xftf(file_path, user='PK'):
     data = load_chi_data(file_path)
-    fr = xftf(data[:, 0], data[:, 1])
+    fr = xftf(data[:, 0], data[:, 1], user=user)
     return fr
 
 if __name__ == '__main__':

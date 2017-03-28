@@ -23,6 +23,9 @@ class SpectraSet():
         self.weight_R_factor_FTR = 1
         self.weight_R_factor_chi = 1
 
+        # user's parameters for xftf preparation ['PK'- Pavel Konstantinov, 'ID' - Iraida Demchenko]:
+        self.user = 'PK'
+
         # object to store target spectrum:
         self.target = Spectrum()
         self.target.label_latex = 'target'
@@ -42,6 +45,7 @@ class SpectraSet():
 
 
     def set_ideal_curve_params(self):
+        self.result.user = self.user
         self.result.ideal_curve_ftr = self.target.ftr_vector
         self.result.ideal_curve_r =   self.target.r_vector
         self.result.ideal_curve_k =   self.target.k_vector
@@ -49,7 +53,7 @@ class SpectraSet():
         self.result.k_vector =        self.target.k_vector
         self.result.r_vector =        self.target.r_vector
 
-
+        self.result_simple.user = self.user
         self.result_simple.ideal_curve_ftr = self.target.ftr_vector
         self.result_simple.ideal_curve_r =   self.target.r_vector
         self.result_simple.ideal_curve_k =   self.target.k_vector
@@ -57,6 +61,7 @@ class SpectraSet():
         self.result_simple.k_vector = self.target.k_vector
         self.result_simple.r_vector = self.target.r_vector
 
+        self.result_FTR_from_linear_Chi_k.user = self.user
         self.result_FTR_from_linear_Chi_k.ideal_curve_ftr = self.target.ftr_vector
         self.result_FTR_from_linear_Chi_k.ideal_curve_r =   self.target.r_vector
         self.result_FTR_from_linear_Chi_k.ideal_curve_k =   self.target.k_vector
@@ -106,7 +111,7 @@ class SpectraSet():
         tmp_k_vector = val['data'].k_vector
 
         tmp_chi_vector, tmp_ftr_vector = self.funcForOptimize(x)
-        tmp_ftr_vector = xftf(tmp_k_vector, tmp_chi_vector)[2]
+        tmp_ftr_vector = xftf(tmp_k_vector, tmp_chi_vector, user=self.user)[2]
 
         return tmp_chi_vector, tmp_ftr_vector
 

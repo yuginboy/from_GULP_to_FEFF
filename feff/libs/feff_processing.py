@@ -91,12 +91,22 @@ def fourierTransform(filePath =
     # plt.draw()
     plt.show()
 
-def ftwindow(n, windname=WindowName):
+def ftwindow(n,  user='PK'):
     k_wind = np.zeros(len(n))
     dx = 1
 
     kmin = 3.9
     kmax = 12
+    windname = WindowName
+
+    if user == 'PK':
+        windname = 'kaiser'
+        kmin = 3.9
+        kmax = 12
+    elif user == 'ID':
+        windname = 'hanning'
+        kmin = 3.5
+        kmax = 11.5
     eps = 0.01
 
     # kmin_ind = np.where(n == kmin)[0][0]
@@ -176,15 +186,11 @@ def ftwindow(n, windname=WindowName):
 # win = ftwindow(kex)
 
 
-def xftf(k, chi):
-    win = ftwindow(k)
+def xftf(k, chi, user='PK'):
     rmax_out = 10
     kstep=np.round(1000.*(k[1]-k[0]))/1000.0
-    # kstep=0.05
     nfft = 2048
-    # k = k
-    # chi = chi
-    cchi, win  = xftf_prep(k, chi)
+    cchi, win  = xftf_prep(k, chi, user)
     out = xftf_fast(cchi*win)
     rstep = pi/(kstep*nfft)
     irmax = min(nfft/2, int(1.01 + rmax_out/rstep))
@@ -199,7 +205,7 @@ def xftf(k, chi):
     chir_im  =  out.imag[:irmax]
     return r, chir, chir_mag, chir_re, chir_im
 
-def xftf_prep(k, chi):
+def xftf_prep(k, chi, user='PK'):
     """
     calculate weighted chi(k) on uniform grid of len=nfft, and the
     ft window.
@@ -212,6 +218,12 @@ def xftf_prep(k, chi):
     kmax = 20
     kweight=1
     dk=1
+    if user == 'PK':
+        dk = 1
+    elif user == 'ID':
+        dk = 2
+
+
     dk2 = dk
     # nfft = 2048
     # kstep = 0.05
@@ -220,7 +232,7 @@ def xftf_prep(k, chi):
     k_max = max(max(k), kmax+dk2)
     k_   = kstep * np.arange(int(1.01+k_max/kstep), dtype='float64')
     chi_ = interp(k_, k, chi)
-    win  = ftwindow(np.asarray(np.asarray(k_)))
+    win  = ftwindow(np.asarray(np.asarray(k_)), user=user)
 
     return ((chi_[:npts] *k_[:npts]**kweight), win[:npts])
 

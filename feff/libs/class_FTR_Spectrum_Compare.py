@@ -34,6 +34,12 @@ class FTR_gulp_to_feff_A_model():
         # How many serial snapshots from different center atoms we have:
         self.numberOfSerialEquivalentAtoms = 2
 
+        # user's parameters for xftf preparation ['PK'- Pavel Konstantinov, 'ID' - Iraida Demchenko]:
+        self.user = 'PK'
+
+        # sample preparation mode: AG, 250, 350, 450
+        self.sample_preparation_mode = 'AG'
+
         # store to the ASCII table on a file:
         self.table = TableData()
 
@@ -63,6 +69,7 @@ class FTR_gulp_to_feff_A_model():
         self.showFigs = True
         # define average (from all snapshots in directory) spectrum data:
         self.experiment = Spectrum()
+        self.experiment.user = self.user
         self.experiment.pathToLoadDataFile = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/result_1mono1SR2VasVga2_6.txt'
         self.experiment.label = 'average model'
         self.experiment.label_latex = 'average model'
@@ -70,6 +77,7 @@ class FTR_gulp_to_feff_A_model():
 
 
         self.theory_one = Spectrum()
+        self.theory_one.user = self.user
         self.theory_one.pathToLoadDataFile = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_000002_00001.dat'
         self.theory_one.label = 'snapshot model'
         self.theory_one.label_latex = 'snapshot model'
@@ -98,6 +106,9 @@ class FTR_gulp_to_feff_A_model():
         self.theory_one.ideal_curve_k =   self.experiment.k_vector
         self.theory_one.ideal_curve_chi = self.experiment.chi_vector
         self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+
+        self.theory_one.user = self.user
+        self.setOfSnapshotSpectra.user = self.user
 
     def get_name_of_model_from_fileName(self):
         modelName = os.path.split(os.path.split(os.path.dirname(self.theory_one.pathToLoadDataFile))[0])[1]
@@ -510,13 +521,13 @@ class FTR_gulp_to_feff_A_model():
 
         if (self.weight_R_factor_FTR / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
-                                                        first_part_of_folder_name='Rmin=Rchi'+mask_ss)
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rchi'+mask_ss)
         elif (self.weight_R_factor_chi / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
-                                                        first_part_of_folder_name='Rmin=Rftr'+mask_ss)
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rftr'+mask_ss)
         else:
             self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
-                                                        first_part_of_folder_name='Rmin=Rtot'+mask_ss)
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rtot'+mask_ss)
         self.setupAxes()
         number = 0
 
@@ -670,14 +681,17 @@ class FTR_gulp_to_feff_A_model():
         self.projectWorkingFEFFoutDirectory = dir_path
         # search for experiment and theory files:
         self.getInDirectoryStandardFilePathes()
+
         # load experiment/ideal curve:
+        self.experiment.user = self.user
         self.experiment.loadSpectrumData()
         self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
         self.findBestSnapshotFromList()
-    def calcAllSnapshotFiles_350(self):
+
+    def calcAllSnapshotFiles_temperature(self):
         '''
         main method to run searching procedure of minimum R-factor snapshot
         compare with 350.chik in data folder
@@ -701,117 +715,21 @@ class FTR_gulp_to_feff_A_model():
         # search for experiment and theory files:
         # self.getInDirectoryStandardFilePathes()
         self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
-        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '350.chik')
+        if self.user == 'PK':
+            self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                              f'{self.sample_preparation_mode}.chik')
+        elif self.user == 'ID':
+            self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                              f'SM_{self.sample_preparation_mode}_av.chik')
         # load experiment/ideal curve:
+        self.experiment.user = self.user
         self.experiment.loadSpectrumData()
         self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
-        self.experiment.label_latex_ideal_curve = 'T=350$^{\circ}$'
-        self.outMinValsDir_mask = '_T=350_'
-
-        # set experiment spectra:
-        self.set_ideal_curve_params()
-        # start searching procedure:
-        self.findBestSnapshotFromList()
-    def calcAllSnapshotFiles_450(self):
-        '''
-        main method to run searching procedure of minimum R-factor snapshot
-        compare with 350.chik in data folder
-        :return:
-        '''
-        import tkinter as tk
-        from tkinter import filedialog
-        # open GUI filedialog to select feff_0001 working directory:
-        a = StoreAndLoadVars()
-        print('last used: {}'.format(a.getLastUsedDirPath()))
-        # openfile dialoge
-        root = tk.Tk()
-        root.withdraw()
-        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
-        if os.path.isdir(dir_path):
-            a.lastUsedDirPath = dir_path
-            a.saveLastUsedDirPath()
-
-        # change the working directory path to selected one:
-        self.projectWorkingFEFFoutDirectory = dir_path
-        # search for experiment and theory files:
-        # self.getInDirectoryStandardFilePathes()
-        self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
-        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '450.chik')
-        # load experiment/ideal curve:
-        self.experiment.loadSpectrumData()
-        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
-        self.experiment.label_latex_ideal_curve = 'T=450$^{\circ}$'
-        self.outMinValsDir_mask = '_T=450_'
-
-        # set experiment spectra:
-        self.set_ideal_curve_params()
-        # start searching procedure:
-        self.findBestSnapshotFromList()
-    def calcAllSnapshotFiles_250(self):
-        '''
-        main method to run searching procedure of minimum R-factor snapshot
-        compare with 350.chik in data folder
-        :return:
-        '''
-        import tkinter as tk
-        from tkinter import filedialog
-        # open GUI filedialog to select feff_0001 working directory:
-        a = StoreAndLoadVars()
-        print('last used: {}'.format(a.getLastUsedDirPath()))
-        # openfile dialoge
-        root = tk.Tk()
-        root.withdraw()
-        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
-        if os.path.isdir(dir_path):
-            a.lastUsedDirPath = dir_path
-            a.saveLastUsedDirPath()
-
-        # change the working directory path to selected one:
-        self.projectWorkingFEFFoutDirectory = dir_path
-        # search for experiment and theory files:
-        # self.getInDirectoryStandardFilePathes()
-        self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
-        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', '250.chik')
-        # load experiment/ideal curve:
-        self.experiment.loadSpectrumData()
-        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
-        self.experiment.label_latex_ideal_curve = 'T=250$^{\circ}$'
-        self.outMinValsDir_mask = '_T=250_'
-
-        # set experiment spectra:
-        self.set_ideal_curve_params()
-        # start searching procedure:
-        self.findBestSnapshotFromList()
-    def calcAllSnapshotFiles_AG(self):
-        '''
-        main method to run searching procedure of minimum R-factor snapshot
-        compare with 350.chik in data folder
-        :return:
-        '''
-        import tkinter as tk
-        from tkinter import filedialog
-        # open GUI filedialog to select feff_0001 working directory:
-        a = StoreAndLoadVars()
-        print('last used: {}'.format(a.getLastUsedDirPath()))
-        # openfile dialoge
-        root = tk.Tk()
-        root.withdraw()
-        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
-        if os.path.isdir(dir_path):
-            a.lastUsedDirPath = dir_path
-            a.saveLastUsedDirPath()
-
-        # change the working directory path to selected one:
-        self.projectWorkingFEFFoutDirectory = dir_path
-        # search for experiment and theory files:
-        # self.getInDirectoryStandardFilePathes()
-        self.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.projectWorkingFEFFoutDirectory, ext='dat')
-        self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data', 'AG.chik')
-        # load experiment/ideal curve:
-        self.experiment.loadSpectrumData()
-        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
-        self.experiment.label_latex_ideal_curve = 'as grown'
-        self.outMinValsDir_mask = '_as_grown_'
+        self.experiment.label_latex_ideal_curve = self.user + f': T={self.sample_preparation_mode}' + '$^{\circ}$'
+        self.outMinValsDir_mask = f'_T={self.sample_preparation_mode}_'
+        if self.sample_preparation_mode == 'AG':
+            self.experiment.label_latex_ideal_curve = self.user + ': as grown'
+            self.outMinValsDir_mask = '_as_grown_'
 
         # set experiment spectra:
         self.set_ideal_curve_params()
@@ -841,8 +759,22 @@ class FTR_gulp_to_feff_A_model():
             # search for experiment and theory files:
             self.getInDirectoryStandardFilePathes()
             self.listOfSnapshotFiles = [file_path]
+
+            if self.user == 'PK':
+                self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                                  f'{self.sample_preparation_mode}.chik')
+            elif self.user == 'ID':
+                self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                                  f'SM_{self.sample_preparation_mode}_av.chik')
             # load experiment/ideal curve:
+            self.experiment.user = self.user
             self.experiment.loadSpectrumData()
+            self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
+            self.experiment.label_latex_ideal_curve = self.user + f': T={self.sample_preparation_mode}' + '$^{\circ}$'
+            self.outMinValsDir_mask = f'_T={self.sample_preparation_mode}_'
+            if self.sample_preparation_mode == 'AG':
+                self.experiment.label_latex_ideal_curve = self.user + ': as grown'
+                self.outMinValsDir_mask = '_as_grown_'
             # set experiment spectra:
             self.set_ideal_curve_params()
             # start searching procedure:
@@ -872,10 +804,13 @@ if __name__ == '__main__':
     a.scale_theory_factor_FTR = 0.81
     a.scale_experiment_factor_FTR = 1.0
 
-    # a.calcAllSnapshotFiles_450()
-    # a.calcAllSnapshotFiles_350()
-    # a.calcAllSnapshotFiles_250()
-    a.calcAllSnapshotFiles_AG()
+    #  change the user name, which parameters for xftf transformation you want to use:
+    a.user = 'ID'
+    # change tha sample preparation method:
+    a.sample_preparation_mode = '250'
+    #  if you want to find the minimum from the all snapshots do this:
+    a.calcAllSnapshotFiles_temperature()
+    # if you want to check only one snapshot do this:
     # a.calcSelectedSnapshotFile()
 
     # # start calculate only snapshot file:

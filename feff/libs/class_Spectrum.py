@@ -105,6 +105,9 @@ class Spectrum (object):
         # k(1/A)
         self.k_vector = []
 
+        # user's parameters for xftf preparation ['PK'- Pavel Konstantinov, 'ID' - Iraida Demchenko]:
+        self.user = 'PK'
+
         # R(Angstrom):
         self.r_vector = []
         # Furie transform of chi(k) intensities vector:
@@ -162,9 +165,20 @@ class Spectrum (object):
         self.k_vector   = data[:, 0]
         self.chi_vector = self.scale_theory_factor_CHI * data[:, 1]
 
-        data = load_and_apply_xftf(self.pathToLoadDataFile)
+        data = load_and_apply_xftf(self.pathToLoadDataFile, user=self.user)
         self.r_vector   = data[0]
         self.ftr_vector = self.scale_theory_factor_FTR * data[2] # get only the Real-part of values
+
+        if self.user == 'PK':
+            # region for R(FTR)-factor calculation in Angstroms:
+            self.r_factor_region_ftr = np.array([1, 5])
+            # region for R(chi)-factor calculation in Angstroms^-1:
+            self.r_factor_region_chi_k = np.array([3.9, 12])
+        elif self.user == 'ID':
+            # region for R(FTR)-factor calculation in Angstroms:
+            self.r_factor_region_ftr = np.array([1, 5])
+            # region for R(chi)-factor calculation in Angstroms^-1:
+            self.r_factor_region_chi_k = np.array([3.5, 11.5])
 
     def plotOneSpectrum_chi_k(self):
         plt.plot(self.k_vector, self.chi_vector, lw=2, label=self.label_latex)
@@ -290,6 +304,7 @@ class Spectrum (object):
 if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
     a = Spectrum()
+    a.user = 'ID'
     a.loadSpectrumData()
 
     a.ideal_curve_ftr = a.ftr_vector*1.2
