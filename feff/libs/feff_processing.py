@@ -3,7 +3,10 @@ import numpy as np
 from numpy import (pi, arange, zeros, ones, sin, cos,
                    exp, log, sqrt, where, interp, linspace)
 from scipy.fftpack import fft, ifft
+from scipy import signal
 import matplotlib.pyplot as plt
+from matplotlib import pylab
+import matplotlib.gridspec as gridspec
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -11,7 +14,209 @@ from feff.libs.dir_and_file_operations import get_folder_name, runningScriptDir
 plt.rcParams.update({'font.size': 14})
 WindowName = 'kaiser'
 
+class GraphElement():
+    # base graph elements class
+    def __init__(self):
+        self.axes = []
 
+class SimpleSpectrum():
+    def __init__(self):
+        self.k_vector = []
+        self.chi_vector = []
+        self.r_vector = []
+        self.ftr_vector = []
+        self.user = ''
+        self.label_latex = ''
+
+    def updateInfo(self):
+        self.label_latex = f'user: {self.user}'
+
+    def calcFTRtransform(self):
+        ftr_out = xftf(self.k_vector, self.chi_vector, user=self.user)
+        self.r_vector = ftr_out[0]
+        self.ftr_vector = ftr_out[2]
+
+    def plotOneSpectrum_chi_k(self):
+        plt.plot(self.k_vector, self.chi_vector, lw=2, label=self.label_latex)
+        plt.plot(self.k_vector, ftwindow(self.k_vector, user=self.user), lw=2, label=f'window: {self.user}')
+
+        plt.ylabel('$\chi(k)$', fontsize=20, fontweight='bold')
+        plt.xlabel('$k$ $[\AA^{-1}]$', fontsize=20, fontweight='bold')
+
+    def plotOneSpectrum_FTR_r(self):
+        plt.plot(self.r_vector, self.ftr_vector, lw=2, label=self.label_latex)
+        plt.ylabel('$FT(r)$', fontsize=20, fontweight='bold')
+        plt.xlabel('$r$ $[\AA]$', fontsize=20, fontweight='bold')
+
+
+class CompareUserPresets():
+    def __init__(self):
+        self.dictOfSpectra = {}
+        self.showFigs = True
+        self.fig = []
+        self.FTR   = GraphElement()
+        self.Chi_k = GraphElement()
+        self.suptitle_fontsize = 18
+        self.graph_title_txt = 'Compare two user xftf presets'
+
+
+    def addSpectraToDict(self, currentSpectra):
+        num = len(self.dictOfSpectra)
+        if isinstance(currentSpectra, SimpleSpectrum):
+            self.dictOfSpectra[num] = dict({'data' : currentSpectra})
+
+    def setupAxes(self):
+        if self.showFigs:
+            # create figure with axes:
+
+            pylab.ion()  # Force interactive
+            plt.close('all')
+            ### for 'Qt4Agg' backend maximize figure
+            plt.switch_backend('QT5Agg')
+
+            # plt.rc('text', usetex=True)
+            plt.rc('font', family='serif')
+
+            self.fig = plt.figure()
+            # gs1 = gridspec.GridSpec(1, 2)
+            # fig.show()
+            # fig.set_tight_layout(True)
+            self.figManager = plt.get_current_fig_manager()
+            DPI = self.fig.get_dpi()
+            self.fig.set_size_inches(800.0 / DPI, 600.0 / DPI)
+
+            gs = gridspec.GridSpec(1, 2)
+
+            self.fig.clf()
+
+            self.FTR.axes = self.fig.add_subplot(gs[0, 0])
+            self.FTR.axes.invert_xaxis()
+            self.FTR.axes.set_title('$FT(r)$')
+            self.FTR.axes.grid(True)
+
+            self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
+            self.Chi_k.axes.invert_xaxis()
+            self.Chi_k.axes.set_title('$\chi(k)$')
+            self.Chi_k.axes.grid(True)
+
+            self.FTR.axes.set_ylabel('Reletive Intensity (a.u.)', fontsize=16, fontweight='bold')
+            self.FTR.axes.set_xlabel('$r$ $[\AA]$', fontsize=16, fontweight='bold')
+            self.Chi_k.axes.set_ylabel('Reletive Intensity (a.u.)', fontsize=16, fontweight='bold')
+            self.Chi_k.axes.set_xlabel('$k$ $[\AA^{-1}]$', fontsize=16, fontweight='bold')
+
+            # Change the axes border width
+            for axis in ['top', 'bottom', 'left', 'right']:
+                self.FTR.axes.spines[axis].set_linewidth(2)
+                self.Chi_k.axes.spines[axis].set_linewidth(2)
+
+            # plt.subplots_adjust(top=0.85)
+            # gs1.tight_layout(fig, rect=[0, 0.03, 1, 0.95])
+            self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            self.figManager.window.setGeometry(1920, 20, 1920, 1180)
+
+            plt.show()
+
+            self.fig.suptitle(self.graph_title_txt, fontsize=self.suptitle_fontsize, fontweight='normal')
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            # self.figManager.window.setGeometry(780, 20, 800, 600)
+            self.figManager.window.setWindowTitle('Compare xftf')
+            self.figManager.window.showMinimized()
+
+
+            # save to the PNG file:
+            # out_file_name = '%s_' % (case) + "%05d.png" % (numOfIter)
+            # fig.savefig(os.path.join(out_dir, out_file_name))
+
+    def setAxesLimits_FTR(self):
+        plt.axis([1, 5, plt.ylim()[0], plt.ylim()[1]])
+
+    def setAxesLimits_Chi(self):
+        pass
+        # plt.axis([3.5, 13, plt.ylim()[0], plt.ylim()[1]])
+        # plt.axis([3.5, 13, -1, 1])
+
+    def plotSpectra_FTR_r_All(self):
+        for i in self.dictOfSpectra:
+            val = self.dictOfSpectra[i]
+            val['data'].plotOneSpectrum_FTR_r()
+        plt.title(f'FTR transformation')
+        plt.legend()
+        plt.show()
+
+    def plotSpectra_chi_k_All(self):
+        for i in self.dictOfSpectra:
+            val = self.dictOfSpectra[i]
+            val['data'].plotOneSpectrum_chi_k()
+        plt.title('$\chi(k)$ transformation')
+        plt.legend()
+        plt.show()
+
+    def updatePlot(self, saveFigs=False):
+
+        if self.showFigs:
+
+            self.fig.clf()
+            gs = gridspec.GridSpec(1, 2)
+
+            self.FTR.axes = self.fig.add_subplot(gs[0, 0])
+            plt.axes(self.FTR.axes)
+            self.plotSpectra_FTR_r_All()
+            self.FTR.axes.grid(True)
+            self.setAxesLimits_FTR()
+
+            self.Chi_k.axes = self.fig.add_subplot(gs[0, 1])
+            plt.axes(self.Chi_k.axes)
+            self.plotSpectra_chi_k_All()
+            # self.Chi_k.axes.invert_xaxis()
+            self.Chi_k.axes.grid(True)
+            self.setAxesLimits_Chi()
+
+            # The formatting of tick labels is controlled by a Formatter object,
+            # which assuming you haven't done anything fancy will be a ScalerFormatterby default.
+            # This formatter will use a constant shift if the fractional change of the values visible is very small.
+            # To avoid this, simply turn it off:
+            self.FTR.axes.get_xaxis().get_major_formatter().set_scientific(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_scientific(False)
+
+            self.FTR.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+            self.Chi_k.axes.get_xaxis().get_major_formatter().set_useOffset(False)
+
+            # plt.subplots_adjust(top=0.85)
+            # gs1.tight_layout(fig, rect=[0, 0.03, 1, 0.95])
+            self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            self.figManager.window.setGeometry(1920, 20, 1920, 1180)
+
+            # plt.show()
+            plt.draw()
+            self.fig.suptitle(self.graph_title_txt, fontsize=self.suptitle_fontsize, fontweight='normal')
+
+            # put window to the second monitor
+            # figManager.window.setGeometry(1923, 23, 640, 529)
+            # self.figManager.window.setGeometry(780, 20, 800, 600)
+
+
+
+            self.figManager.window.setWindowTitle('Search the minimum and find the coordinates')
+            # self.figManager.window.showMinimized()
+
+        # if saveFigs and self.showFigs:
+        #     # save to the PNG file:
+        #     # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+        #     modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        #     if self.scale_theory_factor_FTR == 1:
+        #         out_file_name =  snapNumberStr + '_R={0:1.4}.png'.format(self.minimum.Rtot)
+        #     else:
+        #         out_file_name =  snapNumberStr + '_So={1:1.3f}_R={0:1.4}.png'.format(self.minimum.Rtot,
+        #                                                                             self.scale_theory_factor_FTR)
+        #     self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
 def fourierTransform(filePath =
     r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/result_1mono1SR2VasVga2_6.txt'):
@@ -103,10 +308,22 @@ def ftwindow(n,  user='PK'):
         windname = 'kaiser'
         kmin = 3.9
         kmax = 12
+        dx = 1
+    elif user == 'PK_test':
+        windname = 'kaiser'
+        kmin = 3.9
+        kmax = 12
+        dx = 3
+    elif user == 'ID_test':
+        windname = 'hanning'
+        kmin = 3.9
+        kmax = 12
+        dx = 3
     elif user == 'ID':
         windname = 'hanning'
         kmin = 3.5
         kmax = 11.5
+        dx = 2
     eps = 0.01
 
     # kmin_ind = np.where(n == kmin)[0][0]
@@ -124,8 +341,16 @@ def ftwindow(n,  user='PK'):
     wind_point = len(n[kmin_ind:kmin_ind1 + 1])
     if windname == 'kaiser':
         init_window = np.kaiser(2 * wind_point, 3)
-    else:
+    elif windname == 'hanning':
         init_window = np.hanning(2 * wind_point)
+    elif windname == 'blackman':
+        init_window = np.blackman(2 * wind_point)
+    elif windname == 'hamming':
+        init_window = np.hamming(2 * wind_point)
+    elif windname == 'chebwin':
+        init_window = signal.chebwin(2 * wind_point, at=100)
+    elif windname == 'bartlett':
+        init_window = np.bartlett(2 * wind_point)
 
     max1 = np.where(init_window == max(init_window))[0][0]
     max2 = np.where(init_window == max(init_window))[0][1]
@@ -217,11 +442,15 @@ def xftf_prep(k, chi, user='PK'):
     # kmin = 0
     kmax = 20
     kweight=1
-    dk=1
-    if user == 'PK':
-        dk = 1
-    elif user == 'ID':
-        dk = 2
+    dk=3
+    # if user == 'PK':
+    #     dk = 1
+    # elif user == 'ID':
+    #     dk = 2
+    # elif user == 'ID_test':
+    #     dk = 1
+    # elif user == 'PK_test':
+    #     dk = 1
 
 
     dk2 = dk
@@ -236,6 +465,8 @@ def xftf_prep(k, chi, user='PK'):
 
     return ((chi_[:npts] *k_[:npts]**kweight), win[:npts])
 
+
+
 def xftf_fast(chi, nfft=2048, kstep=0.05):
 
     cchi = zeros(nfft, dtype='complex128')
@@ -243,11 +474,44 @@ def xftf_fast(chi, nfft=2048, kstep=0.05):
     return (kstep / sqrt(pi)) * fft(cchi)[:int(nfft/2)]
 
 if __name__=='__main__':
-    root = tk.Tk()
-    root.withdraw()
-    file_path = filedialog.askopenfilename(filetypes=[("result_chi", '*.txt')],
-                                           initialdir=r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001')
+    # root = tk.Tk()
+    # root.withdraw()
+    # file_path = filedialog.askopenfilename(filetypes=[("result_chi", '*.txt')],
+    #                                        initialdir=r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001')
+    #
+    # fourierTransform(filePath=file_path)
+    k = np.arange(0.5, 15, 0.05)
+    chi = np.sin(7 * k) + np.sin(5 * k + np.pi * 0.3)
+    obj = CompareUserPresets()
 
-    fourierTransform(filePath=file_path)
+
+    a = SimpleSpectrum()
+    a.k_vector = k
+    a.chi_vector = chi
+    a.user = 'PK_test'
+    a.calcFTRtransform()
+    a.updateInfo()
+    obj.addSpectraToDict(a)
+
+    # b = SimpleSpectrum()
+    # b.k_vector = k
+    # b.chi_vector = chi
+    # b.user = 'ID'
+    # b.calcFTRtransform()
+    # b.updateInfo()
+    # obj.addSpectraToDict(b)
+
+    c = SimpleSpectrum()
+    c.k_vector = k
+    c.chi_vector = chi
+    c.user = 'ID_test'
+    c.calcFTRtransform()
+    c.updateInfo()
+    obj.addSpectraToDict(c)
+
+    obj.setupAxes()
+    obj.updatePlot()
+    plt.show()
+
 
 
