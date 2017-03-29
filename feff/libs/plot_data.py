@@ -49,10 +49,10 @@ def plotData(x = np.r_[0:50], y = np.cos(np.r_[0:50]/6*np.pi), error = np.random
     figManager.window.showMinimized()
 
     # plt.show()
-    ax.plot( x, y, label = '<$chi$>' )
-    ax.plot( x, y_median, label = '$chi$ median', color = 'darkcyan' )
-    ax.plot( x, y_max, label = '$chi$ max', color = 'skyblue' )
-    ax.plot( x, y_min, label = '$chi$ min', color = 'lightblue' )
+    ax.plot( x, y, label = '<$\chi(k)$>' )
+    ax.plot( x, y_median, label = '$\chi(k)$ median', color = 'darkcyan')
+    ax.plot( x, y_max, label = '$\chi(k)$ max', color = 'skyblue' )
+    ax.plot( x, y_min, label = '$\chi(k)$ min', color = 'lightblue' )
 
     fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
     ax.plot(x, y, 'k', color='#1B2ACC')
@@ -65,6 +65,7 @@ def plotData(x = np.r_[0:50], y = np.cos(np.r_[0:50]/6*np.pi), error = np.random
 
 
     ax.grid(True)
+    plt.legend()
 
     ax.set_ylabel('$\chi(k)$', fontsize=20, fontweight='bold')
     ax.set_xlabel('$k$', fontsize=20, fontweight='bold')

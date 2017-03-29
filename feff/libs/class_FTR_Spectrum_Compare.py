@@ -807,9 +807,11 @@ if __name__ == '__main__':
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
     # change tha sample preparation method:
-    a.sample_preparation_mode = '250'
+    a.sample_preparation_mode = '350'
+    # if you want compare with the theoretical average, do this:
+    a.calcAllSnapshotFiles()
     #  if you want to find the minimum from the all snapshots do this:
-    a.calcAllSnapshotFiles_temperature()
+    # a.calcAllSnapshotFiles_temperature()
     # if you want to check only one snapshot do this:
     # a.calcSelectedSnapshotFile()
 

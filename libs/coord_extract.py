@@ -6,7 +6,7 @@ import progressbar
 from libs.classes import Unitcell
 from feff.mainFEFF import feffCalcFun
 
-limitNumOfSnapshots = 10000
+limitNumOfSnapshots = 1e6
 
 def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
     '''

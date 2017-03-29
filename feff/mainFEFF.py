@@ -93,6 +93,10 @@ def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath 
 
     i = 0
     numOfColumns = len(filesFullPathName)
+
+    # started to average from that snupshot number:
+    shift = round(numOfColumns / 2)
+
     k = np.r_[0:20.05:0.05]
     numOfRows = len(k)
     chi = np.zeros((numOfRows, numOfColumns))
@@ -167,14 +171,42 @@ def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath 
                 if plotTheData:
                     plotData(x = k, y = chi_mean, error = chi_std, numOfIter = i, out_dir = result_dir, case = folder_name,
                             y_median= chi_median, y_max=chi_max, y_min=chi_min)
+
+                if (i > shift) and (((i-shift) % 500)==0) and ( (i-shift) > 2 ):
+                    # calc average with a shift (started not from the first snapshot)
+
+                    chi_std = np.std(chi[:,  shift:i], axis=1)
+                    chi_mean = np.mean(chi[:,  shift:i], axis=1)
+
+                    chi_median = np.median(chi[:,  shift:i], axis=1)
+                    chi_max    = np.amax(chi[:,  shift:i], axis=1)
+                    chi_min    = np.amin(chi[:,  shift:i], axis=1)
+
+
+                    out_array = np.zeros((numOfRows, 3+3))
+                    out_array[:, 0] = k
+                    out_array[:, 1] = chi_mean
+                    out_array[:, 2] = chi_std
+
+                    out_array[:, 3] = chi_median
+                    out_array[:, 4] = chi_max
+                    out_array[:, 5] = chi_min
+
+                    headerTxt = 'k\t<chi>\tstd\tchi_median\tchi_max\tchi_min'
+                    out_file_name = f'aver_from_{shift}_to_{i}_' + "result_%s" %(folder_name) + "_%05d.txt" %(i)
+                    np.savetxt(os.path.join(result_dir, out_file_name), out_array, fmt='%1.6e', delimiter='\t',header=headerTxt)
+                    print('==> write iter number {0} to the {1} file'.format(i, out_file_name))
+                    if plotTheData:
+                        plotData(x = k, y = chi_mean, error = chi_std, numOfIter = i, out_dir = result_dir, case = folder_name + f'_from_{shift}_to_{i}]',
+                                y_median= chi_median, y_max=chi_max, y_min=chi_min)
         i+=1
 
-    chi_std = np.std(chi[:,:],axis=1)
-    chi_mean = np.mean(chi[:,:],axis=1)
+    chi_std    = np.std(chi[:, :], axis=1)
+    chi_mean   = np.mean(chi[:, :], axis=1)
 
-    chi_median = np.median(chi[:,:],axis=1)
-    chi_max    = np.amax(chi[:,:],axis=1)
-    chi_min    = np.amin(chi[:,:],axis=1)
+    chi_median = np.median(chi[:, :], axis=1)
+    chi_max    = np.amax(chi[:, :], axis=1)
+    chi_min    = np.amin(chi[:, :], axis=1)
 
 
     out_array = np.zeros((numOfRows, 3+3))
@@ -194,6 +226,34 @@ def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath 
         plotData(x = k, y = chi_mean, error = chi_std, numOfIter = i, out_dir = result_dir, case = folder_name,
                  y_median= chi_median, y_max=chi_max, y_min=chi_min)
 
+    #     ==========================================================================
+    #  Calculate average data started from the middle snapshot number.
+    # We suppose that structure will be already relaxed to the moment of middle snapshot.
+
+    chi_std = np.std(chi[:, shift:-1],axis=1)
+    chi_mean = np.mean(chi[:, shift:-1],axis=1)
+
+    chi_median = np.median(chi[:, shift:-1],axis=1)
+    chi_max    = np.amax(chi[:, shift:-1],axis=1)
+    chi_min    = np.amin(chi[:, shift:-1],axis=1)
+
+
+    out_array = np.zeros((numOfRows, 3+3))
+    out_array[:, 0] = k
+    out_array[:, 1] = chi_mean
+    out_array[:, 2] = chi_std
+
+    out_array[:, 3] = chi_median
+    out_array[:, 4] = chi_max
+    out_array[:, 5] = chi_min
+
+    headerTxt = 'k\t<chi>\tstd\tchi_median\tchi_max\tchi_min'
+    np.savetxt(os.path.join(result_dir, f'aver_from_{shift}_to_{numOfColumns}_result.txt'), out_array, fmt='%1.6e', delimiter='\t',header=headerTxt)
+    # copy result.txt file to the outDirPath folder:
+    if plotTheData:
+        plotData(x = k, y = chi_mean, error = chi_std, numOfIter = i, out_dir = result_dir, case = folder_name + f'_shift={shift}',
+                 y_median= chi_median, y_max=chi_max, y_min=chi_min)
+
 
 
     print('program is finished')
@@ -210,14 +270,16 @@ if __name__ == "__main__":
     # run in terminal the next command: python3 mainFEFF.py 60
     # where '60' - the name of case-folder, which you want to calculate
 
-    debugMode = False
+    debugMode = True
     userHomeDirPath = os.path.expanduser('~')
-    feffLoadDirLocalPath = 'VirtualboxShare/FEFF/load/'
+    feffLoadDirLocalPath = 'VirtualboxShare/GaMnO/debug/'
     feffLoadDirAbsPath = os.path.join(userHomeDirPath, feffLoadDirLocalPath)
 
     if debugMode:
         # for test and debug:
-        feffCalcFun(dataPath=feffLoadDirAbsPath + 'test/', plotTheData=False)
+        # feffCalcFun(dataPath=feffLoadDirAbsPath + 'test/', plotTheData=False)
+        feffCalcFun(dataPath=feffLoadDirAbsPath + 'feff_debug/', tmpPath=feffLoadDirAbsPath + 'feff_debug/tmp/',
+        outDirPath = feffLoadDirAbsPath + 'feff_debug/feff_out/', plotTheData=True)
 
     else:
         dataPath = []
