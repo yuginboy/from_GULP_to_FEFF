@@ -5,6 +5,7 @@
 * Last modified: 2017-03-14
 '''
 from feff.libs.class_Spectrum import Spectrum
+import os
 import numpy as np
 from scipy.optimize import minimize
 from scipy.optimize import differential_evolution
@@ -316,6 +317,173 @@ class SpectraSet():
         plt.legend()
         plt.show()
 
+    def saveSpectra_LinearComposition_FTR_from_linear_Chi_k(self, output_dir=''):
+        # save Spectra to ASCII column file:
+        num = len(self.dictOfSpectra)
+        numOfRows = len(self.result_FTR_from_linear_Chi_k.r_vector)
+        out_array_ftr = np.zeros((numOfRows, num + 3))
+        numOfRows = len(self.result_FTR_from_linear_Chi_k.chi_vector)
+        out_array_chi = np.zeros((numOfRows, num + 3))
+        out_array_ftr[:, 0] = self.result_FTR_from_linear_Chi_k.r_vector
+        out_array_chi[:, 0] = self.result_FTR_from_linear_Chi_k.k_vector
+        headerTxt_ftr = 'r_vector[AA]\t'
+        headerTxt_chi = 'k_vector[1/AA]\t'
+        R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+        txt = 'FTR(linear chi composition) Rtot={0:1.5f}, Rftr={1:1.5f}, Rchi={2:1.5f}: \n formula is:\n'.format(R_tot, R_ftr, R_chi)
+        for i in self.dictOfSpectra:
+            val = self.dictOfSpectra[i]
+            out_array_ftr[:, i+1] = val['data'].ftr_vector
+            out_array_chi[:, i+1] = val['data'].chi_vector
+            headerTxt_ftr = headerTxt_ftr + 'sanpshot:' + val['data'].label
+            headerTxt_chi = headerTxt_chi + 'sanpshot:' + val['data'].label
+            txt = txt + '{0}*[ '.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 4)) + val['data'].label + ' ]'
+            if i < num - 1:
+                txt = txt + ' + '
+            headerTxt_ftr = headerTxt_ftr + '\t'
+            headerTxt_chi = headerTxt_chi + '\t'
+
+
+        i = i + 2
+        headerTxt_ftr = headerTxt_ftr + 'complex spectra'
+        headerTxt_chi = headerTxt_chi + 'complex spectra'
+        headerTxt_ftr = headerTxt_ftr + '\t'
+        headerTxt_chi = headerTxt_chi + '\t'
+        out_array_ftr[:, i] = self.result_FTR_from_linear_Chi_k.ftr_vector
+        out_array_chi[:, i] = self.result_FTR_from_linear_Chi_k.chi_vector
+
+        i = i + 1
+        headerTxt_ftr = headerTxt_ftr + 'ideal curve'
+        headerTxt_chi = headerTxt_chi + 'ideal curve'
+        headerTxt_ftr = headerTxt_ftr + '\t'
+        headerTxt_chi = headerTxt_chi + '\t'
+        out_array_ftr[:, i] = self.result_FTR_from_linear_Chi_k.ideal_curve_ftr
+        out_array_chi[:, i] = self.result_FTR_from_linear_Chi_k.ideal_curve_chi
+
+        headerTxt = txt + '\n' + headerTxt_ftr
+        out_array = out_array_ftr
+        np.savetxt(os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__ftr(r).txt'), out_array, fmt='%1.6e',
+                   delimiter='\t', header=headerTxt)
+        txt_out = os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__ftr(r).txt')
+        print(f'=========== file: {txt_out} has been saved')
+
+        headerTxt = txt + '\n' + headerTxt_chi
+        out_array = out_array_chi
+        np.savetxt(os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__chi(k).txt'), out_array, fmt='%1.6e',
+                   delimiter='\t', header=headerTxt)
+        txt_out = os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__chi(k).txt')
+        print(f'=========== file: {txt_out} has been saved')
+
+    def saveSpectra_LinearComposition(self, output_dir=''):
+        # save Spectra to ASCII column file:
+        num = len(self.dictOfSpectra)
+        numOfRows = len(self.result.r_vector)
+        out_array_ftr = np.zeros((numOfRows, num + 3))
+        numOfRows = len(self.result.chi_vector)
+        out_array_chi = np.zeros((numOfRows, num + 3))
+        out_array_ftr[:, 0] = self.result.r_vector
+        out_array_chi[:, 0] = self.result.k_vector
+        headerTxt_ftr = 'r_vector[AA]\t'
+        headerTxt_chi = 'k_vector[1/AA]\t'
+        R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition()
+        txt = '(Linear chi composition) Rtot={0:1.5f}, Rftr={1:1.5f}, Rchi={2:1.5f}: \n formula is:\n'.format(R_tot, R_ftr, R_chi)
+        for i in self.dictOfSpectra:
+            val = self.dictOfSpectra[i]
+            out_array_ftr[:, i+1] = val['data'].ftr_vector
+            out_array_chi[:, i+1] = val['data'].chi_vector
+            headerTxt_ftr = headerTxt_ftr + 'sanpshot:' + val['data'].label
+            headerTxt_chi = headerTxt_chi + 'sanpshot:' + val['data'].label
+            txt = txt + '{0}*[ '.format(round(self.coefficient_vector[i], 4)) + val['data'].label + ' ]'
+            if i < num - 1:
+                txt = txt + ' + '
+            headerTxt_ftr = headerTxt_ftr + '\t'
+            headerTxt_chi = headerTxt_chi + '\t'
+
+
+        i = i + 2
+        headerTxt_ftr = headerTxt_ftr + 'complex spectra'
+        headerTxt_chi = headerTxt_chi + 'complex spectra'
+        headerTxt_ftr = headerTxt_ftr + '\t'
+        headerTxt_chi = headerTxt_chi + '\t'
+        out_array_ftr[:, i] = self.result.ftr_vector
+        out_array_chi[:, i] = self.result.chi_vector
+
+        i = i + 1
+        headerTxt_ftr = headerTxt_ftr + 'ideal curve'
+        headerTxt_chi = headerTxt_chi + 'ideal curve'
+        headerTxt_ftr = headerTxt_ftr + '\t'
+        headerTxt_chi = headerTxt_chi + '\t'
+        out_array_ftr[:, i] = self.result.ideal_curve_ftr
+        out_array_chi[:, i] = self.result.ideal_curve_chi
+
+        headerTxt = txt + '\n' + headerTxt_ftr
+        out_array = out_array_ftr
+        np.savetxt(os.path.join(output_dir, f'{self.result.label}__ftr(r).txt'), out_array, fmt='%1.6e',
+                   delimiter='\t', header=headerTxt)
+        txt_out = os.path.join(output_dir, f'{self.result.label}__ftr(r).txt')
+        print(f'=========== file: {txt_out} has been saved')
+
+        headerTxt = txt + '\n' + headerTxt_chi
+        out_array = out_array_chi
+        np.savetxt(os.path.join(output_dir, f'{self.result.label}__chi(k).txt'), out_array, fmt='%1.6e',
+                   delimiter='\t', header=headerTxt)
+        txt_out = os.path.join(output_dir, f'{self.result.label}__chi(k).txt')
+        print(f'=========== file: {txt_out} has been saved')
+
+    def saveSpectra_SimpleComposition(self, output_dir=''):
+        # save Spectra to ASCII column file:
+        num = len(self.dictOfSpectra)
+        numOfRows = len(self.result_simple.r_vector)
+        out_array_ftr = np.zeros((numOfRows, num + 3))
+        numOfRows = len(self.result_simple.chi_vector)
+        out_array_chi = np.zeros((numOfRows, num + 3))
+        out_array_ftr[:, 0] = self.result_simple.r_vector
+        out_array_chi[:, 0] = self.result_simple.k_vector
+        headerTxt_ftr = 'r_vector[AA]\t'
+        headerTxt_chi = 'k_vector[1/AA]\t'
+        R_tot, R_ftr, R_chi = self.get_R_factor_SimpleComposition()
+        txt = '(simple chi composition) Rtot={0:1.5f}, Rftr={1:1.5f}, Rchi={2:1.5f}: \n formula is:\n'.format(R_tot, R_ftr, R_chi)
+        for i in self.dictOfSpectra:
+            val = self.dictOfSpectra[i]
+            out_array_ftr[:, i+1] = val['data'].ftr_vector
+            out_array_chi[:, i+1] = val['data'].chi_vector
+            headerTxt_ftr = headerTxt_ftr + 'sanpshot:' + val['data'].label
+            headerTxt_chi = headerTxt_chi + 'sanpshot:' + val['data'].label
+            txt = txt + '{0}*[ '.format(round(self.coefficient_vector[i]*0+0.5, 1)) + val['data'].label + ' ]'
+            if i < num - 1:
+                txt = txt + ' + '
+            headerTxt_ftr = headerTxt_ftr + '\t'
+            headerTxt_chi = headerTxt_chi + '\t'
+
+
+        i = i + 2
+        headerTxt_ftr = headerTxt_ftr + 'complex spectra'
+        headerTxt_chi = headerTxt_chi + 'complex spectra'
+        headerTxt_ftr = headerTxt_ftr + '\t'
+        headerTxt_chi = headerTxt_chi + '\t'
+        out_array_ftr[:, i] = self.result_simple.ftr_vector
+        out_array_chi[:, i] = self.result_simple.chi_vector
+
+        i = i + 1
+        headerTxt_ftr = headerTxt_ftr + 'ideal curve'
+        headerTxt_chi = headerTxt_chi + 'ideal curve'
+        headerTxt_ftr = headerTxt_ftr + '\t'
+        headerTxt_chi = headerTxt_chi + '\t'
+        out_array_ftr[:, i] = self.result_simple.ideal_curve_ftr
+        out_array_chi[:, i] = self.result_simple.ideal_curve_chi
+
+        headerTxt = txt + '\n' + headerTxt_ftr
+        out_array = out_array_ftr
+        np.savetxt(os.path.join(output_dir, f'{self.result_simple.label}__ftr(r).txt'), out_array, fmt='%1.6e',
+                   delimiter='\t', header=headerTxt)
+        txt_out = os.path.join(output_dir, f'{self.result_simple.label}__ftr(r).txt')
+        print(f'=========== file: {txt_out} has been saved')
+
+        headerTxt = txt + '\n' + headerTxt_chi
+        out_array = out_array_chi
+        np.savetxt(os.path.join(output_dir, f'{self.result_simple.label}__chi(k).txt'), out_array, fmt='%1.6e',
+                   delimiter='\t', header=headerTxt)
+        txt_out = os.path.join(output_dir, f'{self.result_simple.label}__chi(k).txt')
+        print(f'=========== file: {txt_out} has been saved')
 
 
 

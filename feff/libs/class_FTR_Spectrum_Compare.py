@@ -89,6 +89,10 @@ class FTR_gulp_to_feff_A_model():
         # self.theory_SimpleComposition = Spectrum()
         # self.theory_LinearComposition = Spectrum()
 
+        self.do_SimpleSpectraComposition = False
+        self.do_LinearSpectraComposition = False
+        self.do_FTR_from_linear_Chi_k_SpectraComposition = True
+
 
         self.set_ideal_curve_params()
 
@@ -583,65 +587,78 @@ class FTR_gulp_to_feff_A_model():
 
                 currentSerialSnapNumber = 0
 
-                # ----- Simple Composition of Snapshots:
-                self.setOfSnapshotSpectra.calcSimpleSpectraComposition()
-                print('Simple composition has been calculated')
-                self.setOfSnapshotSpectra.updateInfo_SimpleComposition()
-                number = number + 1
-                R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
-                self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
-                self.currentValues.number = number
-                self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_simple.label
-                self.table.addRecord(self.currentValues)
+                if self.do_SimpleSpectraComposition:
+                    # ----- Simple Composition of Snapshots:
+                    self.setOfSnapshotSpectra.calcSimpleSpectraComposition()
+                    print('Simple composition has been calculated')
+                    self.setOfSnapshotSpectra.updateInfo_SimpleComposition()
+                    number = number + 1
+                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
+                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                    self.currentValues.number = number
+                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_simple.label
+                    self.table.addRecord(self.currentValues)
 
-                self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_simple)
-                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-                if R_tot < self.minimum.Rtot:
-                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
-                                           modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
-                        round(self.minimum.Rtot, 4))
-                    self.updatePlotOfSnapshotsComposition_Simple()
+                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_simple)
+                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    if R_tot < self.minimum.Rtot:
+                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                               modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                            round(self.minimum.Rtot, 4))
+                        self.updatePlotOfSnapshotsComposition_Simple()
+                        # save ASCII column data:
+                        self.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
+                            output_dir=self.outMinValsDir)
 
+                if self.do_FTR_from_linear_Chi_k_SpectraComposition:
                 # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
-                self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
-                print('Linear FTR from Chi(k) composition has been calculated')
-                self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
-                number = number + 1
-                R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
-                self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
-                self.currentValues.number = number
-                self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label
-                self.table.addRecord(self.currentValues)
+                    self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
+                    print('Linear FTR from Chi(k) composition has been calculated')
+                    self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
+                    number = number + 1
+                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                    self.currentValues.number = number
+                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label
+                    self.table.addRecord(self.currentValues)
 
-                self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
-                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-                if R_tot < self.minimum.Rtot:
-                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
-                                           modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
-                        round(R_tot, 4))
-                    self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
+                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    if R_tot < self.minimum.Rtot:
+                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                               modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                            round(R_tot, 4))
+                        self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+                        # save ASCII column data:
+                        self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                            output_dir=self.outMinValsDir)
 
+
+                if self.do_LinearSpectraComposition:
                 # ----- Linear Composition of Snapshots:
-                self.setOfSnapshotSpectra.calcLinearSpectraComposition()
-                print('Linear composition has been calculated')
-                self.setOfSnapshotSpectra.updateInfo_LinearComposition()
-                number = number + 1
-                R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition()
-                self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
-                self.currentValues.number = number
-                self.currentValues.snapshotName = self.setOfSnapshotSpectra.result.label
-                self.table.addRecord(self.currentValues)
+                    self.setOfSnapshotSpectra.calcLinearSpectraComposition()
+                    print('Linear composition has been calculated')
+                    self.setOfSnapshotSpectra.updateInfo_LinearComposition()
+                    number = number + 1
+                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition()
+                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                    self.currentValues.number = number
+                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result.label
+                    self.table.addRecord(self.currentValues)
 
-                self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result)
-                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-                if R_tot < self.minimum.Rtot:
-                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                    self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
-                                           modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
-                        round(self.minimum.Rtot, 4))
-                    self.updatePlotOfSnapshotsComposition_Linear()
+                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result)
+                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    if R_tot < self.minimum.Rtot:
+                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                               modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                            round(self.minimum.Rtot, 4))
+                        self.updatePlotOfSnapshotsComposition_Linear()
+                        # save ASCII column data:
+                        self.setOfSnapshotSpectra.saveSpectra_LinearComposition(
+                            output_dir=self.outMinValsDir)
 
 
 
@@ -805,13 +822,13 @@ if __name__ == '__main__':
     a.scale_experiment_factor_FTR = 1.0
 
     #  change the user name, which parameters for xftf transformation you want to use:
-    a.user = 'ID'
+    a.user = 'PK'
     # change tha sample preparation method:
     a.sample_preparation_mode = '350'
     # if you want compare with the theoretical average, do this:
-    a.calcAllSnapshotFiles()
+    # a.calcAllSnapshotFiles()
     #  if you want to find the minimum from the all snapshots do this:
-    # a.calcAllSnapshotFiles_temperature()
+    a.calcAllSnapshotFiles_temperature()
     # if you want to check only one snapshot do this:
     # a.calcSelectedSnapshotFile()
 
