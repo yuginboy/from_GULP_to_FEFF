@@ -15,7 +15,7 @@ print('last used: {}'.format(a.getLastUsedFilePath()))
 # openfile dialog
 root = tk.Tk()
 root.withdraw()
-file_path = filedialog.askopenfilename(filetypes = [("history files", '*.history')], initialdir=a.getLastUsedDirPath())
+file_path = filedialog.askopenfilename(filetypes = [("history files", '*.history')], initialdir=os.path.dirname(a.getLastUsedFilePath()))
 if os.path.isfile(file_path):
     a.lastUsedFilePath = file_path
     a.saveLastUsedFilePath()

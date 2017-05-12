@@ -35,6 +35,7 @@ class StoreAndLoadVars():
         pcklFile = os.path.join(self.dirPath, self.fileNameOfStoredVars)
         with open(pcklFile, 'wb') as f:
             pickle.dump([self], f)
+            f.close()
 
     def getLastUsedDirPath(self):
         self.loadDataFromPickleFile()
