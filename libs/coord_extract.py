@@ -75,9 +75,9 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
             if i == timestep[j+1]:
                 # когда номер строки равен номеру строки с началом следуюшего снапшота, то увеличиваем номер
                 # текущего снапшота на единицу
-                # atomInSnapshot.writeFeffInpFileSeq()
-                # atomInSnapshot.writeSCFfileSeq()
-                # atomInSnapshot.writeRDFfileSeq()
+                atomInSnapshot.writeFeffInpFileSeq()
+                atomInSnapshot.writeSCFfileSeq()
+                atomInSnapshot.writeRDFfileSeq()
                 atomInSnapshot.writeXYZfileSeq()
                 atomInSnapshot.xAver = np.column_stack((atomInSnapshot.xAver, atomInSnapshot.x))# X
                 atomInSnapshot.yAver = np.column_stack((atomInSnapshot.yAver, atomInSnapshot.y))# Y
@@ -132,7 +132,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
     if i < numOfLinesInFile:
         bar.finish()
     # write CFG files:
-    # atomInSnapshot.writeCFGfileSeq()
+    atomInSnapshot.writeCFGfileSeq()
     print("input files for QSTEM were created")
     # calculate RDF values:
     atomInSnapshot.calcAndPlotMeanRDF()
