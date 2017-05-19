@@ -11,6 +11,7 @@ from scipy.optimize import minimize
 from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 from feff.libs.feff_processing import xftf
+from feff.libs.math_libs import sigma_squared, approx_errors
 
 class SpectraSet():
     '''
@@ -42,6 +43,7 @@ class SpectraSet():
 
         self.coefficient_vector = []
         self.coefficient_vector_FTR_from_linear_Chi_k = []
+        self.coefficient_vector_FTR_from_linear_Chi_k_std = []
 
 
 
@@ -105,6 +107,7 @@ class SpectraSet():
                 tmp_ftr_vector = tmp_ftr_vector + k * val['data'].ftr_vector
 
         return tmp_chi_vector, tmp_ftr_vector
+
     def func_FTR_from_linear_Chi_k(self, x):
         # create function of snapshots linear composition coeff[i]*Chi(k)[i] and then do xftf transformation to
         # FT(r) space
@@ -189,12 +192,40 @@ class SpectraSet():
         else:
             self.coefficient_vector_FTR_from_linear_Chi_k = res.x
 
+
+
         self.result_FTR_from_linear_Chi_k.chi_vector = []
         self.result_FTR_from_linear_Chi_k.ftr_vector = []
 
         tmp_chi_vector, tmp_ftr_vector = self.func_FTR_from_linear_Chi_k(self.coefficient_vector_FTR_from_linear_Chi_k)
         self.result_FTR_from_linear_Chi_k.chi_vector = tmp_chi_vector
         self.result_FTR_from_linear_Chi_k.ftr_vector = tmp_ftr_vector * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+
+        # estimate the errors of the coefficients:
+        s2 = self.result_FTR_from_linear_Chi_k.get_FTR_sigma_squared()
+
+        # def func(x):
+        #     self.result_FTR_from_linear_Chi_k.chi_vector, self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+        #     self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
+        #                                                    * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+        #     s2_tot, s2_ftr, s2_chi = self.get_Sigma_Squared_LinearComposition_FTR_from_linear_Chi_k()
+        #     return s2_tot
+
+        se = approx_errors(func, self.coefficient_vector_FTR_from_linear_Chi_k)
+        std = np.sqrt(s2)*se
+        # print('----se:')
+        # print (se)
+        # print('----s2:')
+        # print(s2)
+        # print('----std:')
+        # print(std)
+        # print('==> p0:')
+        # print(self.coefficient_vector_FTR_from_linear_Chi_k)
+        # print('=='*15)
+        self.coefficient_vector_FTR_from_linear_Chi_k_std = std
+
+
+
 
     def get_R_factor_SimpleComposition(self):
         R_chi = self.result_simple.get_chi_R_factor()
@@ -222,6 +253,15 @@ class SpectraSet():
                 (self.weight_R_factor_FTR + self.weight_R_factor_chi)
 
         return R_tot, R_ftr, R_chi
+
+    def get_Sigma_Squared_LinearComposition_FTR_from_linear_Chi_k(self):
+        s2_chi = self.result_FTR_from_linear_Chi_k.get_chi_sigma_squared()
+        s2_ftr = self.result_FTR_from_linear_Chi_k.get_FTR_sigma_squared()
+
+        s2_tot = (self.weight_R_factor_FTR * s2_ftr + self.weight_R_factor_chi * s2_chi) / \
+                (self.weight_R_factor_FTR + self.weight_R_factor_chi)
+
+        return s2_tot, s2_ftr, s2_chi
 
     def updateInfo_SimpleComposition(self):
         R_tot, R_ftr, R_chi = self.get_R_factor_SimpleComposition()
@@ -253,7 +293,8 @@ class SpectraSet():
         num = len(self.dictOfSpectra)
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            txt = txt + '{0}x'.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 4)) + val['data'].label
+            txt = txt + '{0}({1})x'.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 4),
+                                         round(self.coefficient_vector_FTR_from_linear_Chi_k_std[i], 4)) + val['data'].label
             if i < num-1:
                 txt = txt + ' + '
         self.result_FTR_from_linear_Chi_k.label = txt.replace(':', '_').replace(' ', '_').replace('$', '').replace('\\', '')

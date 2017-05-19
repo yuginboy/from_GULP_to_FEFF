@@ -266,6 +266,30 @@ class Spectrum (object):
         self.probe_curve_ftr = self.probe_curve_y
 
         return self.get_R_factor(y_ideal=y1_out, y_probe=y2_out)
+    def get_FTR_sigma_squared(self):
+        '''
+        return unbiased sample variance of FTR [ft(r)] conversion
+        note, that ideal_curve_* vectors should be prepared correctly too (it means that ideal_curve should be writes in
+        ft(r)] variables)
+        :return:
+        '''
+        self.probe_curve_x = self.r_vector
+        self.probe_curve_y = self.ftr_vector * self.scale_factor
+        self.ideal_curve_x, self.ideal_curve_y = self.ideal_curve_r, self.ideal_curve_ftr
+        self.r_factor_region = self.r_factor_region_ftr
+
+        x1, y1 = self.selectPointsInRegion(self.ideal_curve_x, self.ideal_curve_y)
+        x2, y2 = self.selectPointsInRegion(self.probe_curve_x, self.probe_curve_y)
+
+        x_interp, y1_out, y2_out = self.interpArraysToEqualLength(x1, y1, x2, y2)
+        self.probe_curve_x = x_interp
+        self.probe_curve_y = y2_out
+
+        self.probe_curve_r = self.probe_curve_x
+        self.probe_curve_ftr = self.probe_curve_y
+
+        s2 = np.sum( (y1_out - y2_out)**2 ) / (len(y1_out) - 1)
+        return s2
 
     def get_chi_R_factor(self):
         '''
@@ -289,6 +313,30 @@ class Spectrum (object):
         self.probe_curve_k = self.probe_curve_x
         self.probe_curve_chi = self.probe_curve_y
         return self.get_R_factor(y_ideal=y1_out, y_probe=y2_out)
+    def get_chi_sigma_squared(self):
+        '''
+        return unbiased sample variance of chi(k) conversion
+        note, that ideal_curve_* vectors should be prepared correctly too (it means that ideal_curve should be writes in
+        chi(k) variables)
+        :return:
+        '''
+        self.probe_curve_x = self.k_vector
+        self.probe_curve_y = self.chi_vector
+        self.ideal_curve_x, self.ideal_curve_y = self.ideal_curve_k, self.ideal_curve_chi
+        self.r_factor_region = self.r_factor_region_chi_k
+
+        x1, y1 = self.selectPointsInRegion(self.ideal_curve_x, self.ideal_curve_y)
+        x2, y2 = self.selectPointsInRegion(self.probe_curve_x, self.probe_curve_y)
+
+        x_interp, y1_out, y2_out = self.interpArraysToEqualLength(x1, y1, x2, y2)
+        self.probe_curve_x = x_interp
+        self.probe_curve_y = y2_out
+
+        self.probe_curve_k = self.probe_curve_x
+        self.probe_curve_chi = self.probe_curve_y
+
+        s2 = np.sum((y1_out - y2_out) ** 2) / (len(y1_out) - 1)
+        return s2
 
     def convert_ideal_curve_to_FTR(self):
         '''
