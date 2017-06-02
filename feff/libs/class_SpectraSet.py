@@ -44,6 +44,7 @@ class SpectraSet():
         self.coefficient_vector = []
         self.coefficient_vector_FTR_from_linear_Chi_k = []
         self.coefficient_vector_FTR_from_linear_Chi_k_std = []
+        self.coefficient_vector_FTR_from_linear_Chi_k_s2 = []
 
 
 
@@ -223,6 +224,7 @@ class SpectraSet():
         # print(self.coefficient_vector_FTR_from_linear_Chi_k)
         # print('=='*15)
         self.coefficient_vector_FTR_from_linear_Chi_k_std = std
+        self.coefficient_vector_FTR_from_linear_Chi_k_s2 = s2
 
 
 
@@ -293,8 +295,7 @@ class SpectraSet():
         num = len(self.dictOfSpectra)
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            txt = txt + '{0}({1})x'.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 4),
-                                         round(self.coefficient_vector_FTR_from_linear_Chi_k_std[i], 4)) + val['data'].label
+            txt = txt + '{0}x'.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 3)) + val['data'].label
             if i < num-1:
                 txt = txt + ' + '
         self.result_FTR_from_linear_Chi_k.label = txt.replace(':', '_').replace(' ', '_').replace('$', '').replace('\\', '')
@@ -370,14 +371,17 @@ class SpectraSet():
         headerTxt_ftr = 'r_vector[AA]\t'
         headerTxt_chi = 'k_vector[1/AA]\t'
         R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
-        txt = 'FTR(linear chi composition) Rtot={0:1.5f}, Rftr={1:1.5f}, Rchi={2:1.5f}: \n formula is:\n'.format(R_tot, R_ftr, R_chi)
+        txt = 'FTR(linear chi composition) Rtot={0:1.5f}, Rftr={1:1.5f}, Rchi={2:1.5f}: \n sqrt of sigma squared is: {3:1.5f} \n formula is:\n'\
+            .format(R_tot, R_ftr, R_chi, np.sqrt(self.coefficient_vector_FTR_from_linear_Chi_k_s2))
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
             out_array_ftr[:, i+1] = val['data'].ftr_vector
             out_array_chi[:, i+1] = val['data'].chi_vector
             headerTxt_ftr = headerTxt_ftr + 'sanpshot:' + val['data'].label
             headerTxt_chi = headerTxt_chi + 'sanpshot:' + val['data'].label
-            txt = txt + '{0}*[ '.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 4)) + val['data'].label + ' ]'
+            txt = txt + '({0} +/- {1})*[ '.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 4),
+                                              round(self.coefficient_vector_FTR_from_linear_Chi_k_std[i], 4)) \
+                  + val['data'].label + ' ]'
             if i < num - 1:
                 txt = txt + ' + '
             headerTxt_ftr = headerTxt_ftr + '\t'
