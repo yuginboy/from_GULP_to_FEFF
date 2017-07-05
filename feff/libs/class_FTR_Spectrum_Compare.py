@@ -17,6 +17,26 @@ from matplotlib import pylab
 import matplotlib.gridspec as gridspec
 import numpy as np
 
+class Model_for_spectra():
+    def __init__(self):
+        # How many serial snapshots from different center atoms we have:
+        self.numberOfSerialEquivalentAtoms = 2
+
+        self.listOfSnapshotFiles = []
+        self.projectWorkingFEFFoutDirectory = '/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001'
+
+        # create object for theoreticaly calculated spectra:
+        self.theory = Spectrum()
+        # create object which will be collected serial snapshot spectra
+        self.setOfSnapshotSpectra = SpectraSet()
+
+    def get_Model_name(self):
+        path = os.path.join(self.projectWorkingFEFFoutDirectory, self.listOfSnapshotFiles[0])
+        modelName = os.path.split(os.path.split(os.path.dirname(path))[0])[1]
+        name = os.path.split(os.path.basename(path))[1]
+        name = name.split('.')[0]
+        return modelName
+
 class FTR_gulp_to_feff_A_model():
     '''
     Class to search optimal snapshot coordinates by compare chi(k) nad FTR(r) spectra between the snapshots and
@@ -33,6 +53,12 @@ class FTR_gulp_to_feff_A_model():
 
         # How many serial snapshots from different center atoms we have:
         self.numberOfSerialEquivalentAtoms = 2
+
+        self.model_A = Model_for_spectra()
+        self.model_A.numberOfSerialEquivalentAtoms = 2
+        self.model_B = Model_for_spectra()
+        self.model_B.numberOfSerialEquivalentAtoms = 2
+
 
         # user's parameters for xftf preparation ['PK'- Pavel Konstantinov, 'ID' - Iraida Demchenko]:
         self.user = 'PK'
@@ -81,6 +107,10 @@ class FTR_gulp_to_feff_A_model():
         self.theory_one.pathToLoadDataFile = r'/home/yugin/VirtualboxShare/GaMnO/1mono1SR2VasVga2_6/feff__0001/chi_1mono1SR2VasVga2_6_000002_00001.dat'
         self.theory_one.label = 'snapshot model'
         self.theory_one.label_latex = 'snapshot model'
+
+        self.model_A.theory = copy.deepcopy(self.theory_one)
+        self.model_B.theory = copy.deepcopy(self.theory_one)
+
         # self.theory_one.loadSpectrumData()
 
         # create object which will be collected serial snapshot spectra
@@ -113,6 +143,13 @@ class FTR_gulp_to_feff_A_model():
 
         self.theory_one.user = self.user
         self.setOfSnapshotSpectra.user = self.user
+
+        # repeat for two models:
+        self.model_A.theory = copy.deepcopy(self.theory_one)
+        self.model_A.setOfSnapshotSpectra.user = self.user
+
+        self.model_B.theory = copy.deepcopy(self.theory_one)
+        self.model_B.setOfSnapshotSpectra.user = self.user
 
     def get_name_of_model_from_fileName(self):
         modelName = os.path.split(os.path.split(os.path.dirname(self.theory_one.pathToLoadDataFile))[0])[1]
@@ -515,6 +552,12 @@ class FTR_gulp_to_feff_A_model():
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def findBestSnapshotFromList(self):
+        '''
+        seaching procedure of One model linear fit
+        method has 3 different ways to fit the experimental data:
+        equal concentrations, linear coefficients, and linear spectra combinations in k-space but fit in R-space
+        :return: coefficients of data fit
+        '''
 
         if self.scale_theory_factor_FTR == 1:
             mask_ss = ''
@@ -676,6 +719,216 @@ class FTR_gulp_to_feff_A_model():
                                                                                              self.scale_theory_factor_FTR)
         self.table.writeToASCIIFile()
 
+    def findBestSnapshotsCombinationFromTwoModels(self):
+        '''
+        searching procedure of Two Models (A - first, B - second) linear model:
+        k/n(A1 + A2 + .. + An) + (1-k)/m(B1 + B2 + .. + Bm)
+        :return: k - coefficient which corresponds to concentration A phase in A-B compound
+        '''
+        if self.scale_theory_factor_FTR == 1:
+            mask_ss = ''
+        else:
+            mask_ss = '_So={0:1.3f}'.format(self.scale_theory_factor_FTR)
+
+        mask_ss = mask_ss + self.outMinValsDir_mask
+
+        if (self.weight_R_factor_FTR / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rchi'+mask_ss)
+        elif (self.weight_R_factor_chi / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rftr'+mask_ss)
+        else:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rtot'+mask_ss)
+        self.setupAxes()
+        number = 0
+
+
+        self.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.setOfSnapshotSpectra.set_ideal_curve_params()
+        currentSerialSnapNumber = 0
+
+        for filePath in self.listOfSnapshotFiles:
+            number = number + 1
+            print('==> file is: {0}'.format(filePath))
+            print('==> Number is: {0}'.format(number))
+            currentSerialSnapNumber = currentSerialSnapNumber + 1
+            self.theory_one.pathToLoadDataFile = filePath
+            self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.theory_one.loadSpectrumData()
+            self.updateInfo()
+
+            modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+
+            currentSpectra = copy.deepcopy(self.theory_one)
+
+            self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra)
+            self.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
+            self.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+            self.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
+                self.experiment.label_latex_ideal_curve
+
+            self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+
+            self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+
+            R_tot, R_ftr, R_chi = self.get_R_factor()
+
+            self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+            self.currentValues.number = number
+            self.currentValues.snapshotName = os.path.basename(filePath)
+            self.table.addRecord(self.currentValues)
+            if R_tot < self.minimum.Rtot:
+                self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                self.updatePlot()
+
+            if currentSerialSnapNumber == self.numberOfSerialEquivalentAtoms:
+
+
+                currentSerialSnapNumber = 0
+
+                if self.do_SimpleSpectraComposition:
+                    # ----- Simple Composition of Snapshots:
+                    self.setOfSnapshotSpectra.calcSimpleSpectraComposition()
+                    print('Simple composition has been calculated')
+                    self.setOfSnapshotSpectra.updateInfo_SimpleComposition()
+                    number = number + 1
+                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
+                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                    self.currentValues.number = number
+                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_simple.label
+                    self.table.addRecord(self.currentValues)
+
+                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_simple)
+                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    if R_tot < self.minimum.Rtot:
+                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                               modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                            round(self.minimum.Rtot, 4))
+                        self.updatePlotOfSnapshotsComposition_Simple()
+                        # save ASCII column data:
+                        self.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
+                            output_dir=self.outMinValsDir)
+
+                if self.do_FTR_from_linear_Chi_k_SpectraComposition:
+                # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
+                    self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
+                    print('Linear FTR from Chi(k) composition has been calculated')
+                    self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
+                    number = number + 1
+                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                    self.currentValues.number = number
+                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label
+                    self.table.addRecord(self.currentValues)
+
+                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
+                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    if R_tot < self.minimum.Rtot:
+                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                               modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                            round(R_tot, 4))
+                        self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+                        # save ASCII column data:
+                        self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                            output_dir=self.outMinValsDir)
+
+
+                if self.do_LinearSpectraComposition:
+                # ----- Linear Composition of Snapshots:
+                    self.setOfSnapshotSpectra.calcLinearSpectraComposition()
+                    print('Linear composition has been calculated')
+                    self.setOfSnapshotSpectra.updateInfo_LinearComposition()
+                    number = number + 1
+                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition()
+                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                    self.currentValues.number = number
+                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result.label
+                    self.table.addRecord(self.currentValues)
+
+                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result)
+                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    if R_tot < self.minimum.Rtot:
+                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                               modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                            round(self.minimum.Rtot, 4))
+                        self.updatePlotOfSnapshotsComposition_Linear()
+                        # save ASCII column data:
+                        self.setOfSnapshotSpectra.saveSpectra_LinearComposition(
+                            output_dir=self.outMinValsDir)
+
+
+
+
+
+                #     flush Dict of Set of Snapshots
+                self.setOfSnapshotSpectra.flushDictOfSpectra()
+
+
+        # store table to ASCII file:
+        self.table.outDirPath = self.outMinValsDir
+        timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+        # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        self.table.outFileName = modelName + timestamp + '_So={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
+                                                                                             self.scale_theory_factor_FTR)
+        self.table.writeToASCIIFile()
+
+    def calcSelectedSnapshotFile(self):
+        '''
+        calculate and plot graphs only for selected snapshot file
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog
+        # open GUI filedialog to select snapshot file:
+        a = StoreAndLoadVars()
+        print('last used: {}'.format(a.getLastUsedFilePath()))
+        # openfile dialog
+        root = tk.Tk()
+        root.withdraw()
+        file_path = filedialog.askopenfilename(filetypes = [("snapshot files",'*.dat')], initialdir=a.getLastUsedDirPath())
+        if os.path.isfile(file_path):
+            a.lastUsedFilePath = file_path
+            a.saveLastUsedFilePath()
+
+            # change the working directory path to selected one:
+            self.projectWorkingFEFFoutDirectory = os.path.dirname(file_path)
+            # search for experiment and theory files:
+            self.getInDirectoryStandardFilePathes()
+            self.listOfSnapshotFiles = [file_path]
+
+            if self.user == 'PK':
+                self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                                  f'{self.sample_preparation_mode}.chik')
+            elif self.user == 'ID':
+                self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                                  f'SM_{self.sample_preparation_mode}_av.chik')
+            # load experiment/ideal curve:
+            self.experiment.user = self.user
+            self.experiment.loadSpectrumData()
+            self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
+            self.experiment.label_latex_ideal_curve = self.user + f': T={self.sample_preparation_mode}' + '$^{\circ}$'
+            self.outMinValsDir_mask = f'_T={self.sample_preparation_mode}_'
+            if self.sample_preparation_mode == 'AG':
+                self.experiment.label_latex_ideal_curve = self.user + ': as grown'
+                self.outMinValsDir_mask = '_as_grown_'
+            # set experiment spectra:
+            self.set_ideal_curve_params()
+            # start searching procedure:
+            self.findBestSnapshotFromList()
+
     def calcAllSnapshotFiles(self):
         '''
         main method to run searching procedure of minimum R-factor snapshot
@@ -753,49 +1006,76 @@ class FTR_gulp_to_feff_A_model():
         # start searching procedure:
         self.findBestSnapshotFromList()
 
-    def calcSelectedSnapshotFile(self):
+    def calcAllSnapshotFilesForTwoModels_temperature(self):
         '''
-        calculate and plot graphs only for selected snapshot file
+        main method to run searching procedure of minimum R-factor
+        Combine with the linear coefficients of two models A and B
         :return:
         '''
         import tkinter as tk
-        from tkinter import filedialog
-        # open GUI filedialog to select snapshot file:
+        from tkinter import filedialog, messagebox
+
+
+        # open GUI filedialog to select feff_0001 working directory:
         a = StoreAndLoadVars()
-        print('last used: {}'.format(a.getLastUsedFilePath()))
-        # openfile dialog
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
         root = tk.Tk()
         root.withdraw()
-        file_path = filedialog.askopenfilename(filetypes = [("snapshot files",'*.dat')], initialdir=a.getLastUsedDirPath())
-        if os.path.isfile(file_path):
-            a.lastUsedFilePath = file_path
-            a.saveLastUsedFilePath()
 
-            # change the working directory path to selected one:
-            self.projectWorkingFEFFoutDirectory = os.path.dirname(file_path)
-            # search for experiment and theory files:
-            self.getInDirectoryStandardFilePathes()
-            self.listOfSnapshotFiles = [file_path]
+        # load A-model data:
+        messagebox.showinfo("info", "select the A-model FEFF-out folder")
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
 
-            if self.user == 'PK':
-                self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
-                                                                  f'{self.sample_preparation_mode}.chik')
-            elif self.user == 'ID':
-                self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
-                                                                  f'SM_{self.sample_preparation_mode}_av.chik')
-            # load experiment/ideal curve:
-            self.experiment.user = self.user
-            self.experiment.loadSpectrumData()
-            self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
-            self.experiment.label_latex_ideal_curve = self.user + f': T={self.sample_preparation_mode}' + '$^{\circ}$'
-            self.outMinValsDir_mask = f'_T={self.sample_preparation_mode}_'
-            if self.sample_preparation_mode == 'AG':
-                self.experiment.label_latex_ideal_curve = self.user + ': as grown'
-                self.outMinValsDir_mask = '_as_grown_'
-            # set experiment spectra:
-            self.set_ideal_curve_params()
-            # start searching procedure:
-            self.findBestSnapshotFromList()
+        # change the working directory path to selected one:
+        self.model_A.projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.model_A.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.model_A.projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+
+        # load B-model data:
+        messagebox.showinfo("info", "select the B-model FEFF-out folder")
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = dir_path
+        self.model_B.projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.model_B.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.model_B.projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================                                                                   ext='dat')
+
+        if self.user == 'PK':
+            self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                              f'{self.sample_preparation_mode}.chik')
+        elif self.user == 'ID':
+            self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                              f'SM_{self.sample_preparation_mode}_av.chik')
+        # load experiment/ideal curve:
+        self.experiment.user = self.user
+        self.experiment.loadSpectrumData()
+        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
+        self.experiment.label_latex_ideal_curve = self.user + f': T={self.sample_preparation_mode}' + '$^{\circ}$'
+        self.outMinValsDir_mask = f'_T={self.sample_preparation_mode}_'
+        if self.sample_preparation_mode == 'AG':
+            self.experiment.label_latex_ideal_curve = self.user + ': as grown'
+            self.outMinValsDir_mask = '_as_grown_'
+
+        # set experiment spectra:
+        self.set_ideal_curve_params()
+        # start searching procedure:
+        self.findBestSnapshotFromList()
+
+
 
 
 
@@ -814,7 +1094,26 @@ if __name__ == '__main__':
     # plt.show()
 
 
-    # start global searching procedure:
+    # # start global searching procedure:
+    # a = FTR_gulp_to_feff_A_model()
+    # a.weight_R_factor_FTR = 1.0
+    # a.weight_R_factor_chi = 0.0
+    # a.scale_theory_factor_FTR = 0.81
+    # a.scale_experiment_factor_FTR = 1.0
+    #
+    # #  change the user name, which parameters for xftf transformation you want to use:
+    # a.user = 'PK'
+    # # change tha sample preparation method:
+    # a.sample_preparation_mode = '350'
+    # # if you want compare with the theoretical average, do this:
+    # # a.calcAllSnapshotFiles()
+    # #  if you want to find the minimum from the all snapshots do this:
+    # a.calcAllSnapshotFiles_temperature()
+    # # if you want to check only one snapshot do this:
+    # # a.calcSelectedSnapshotFile()
+
+
+    # start global search of Two-model combination:
     a = FTR_gulp_to_feff_A_model()
     a.weight_R_factor_FTR = 1.0
     a.weight_R_factor_chi = 0.0
@@ -828,7 +1127,7 @@ if __name__ == '__main__':
     # if you want compare with the theoretical average, do this:
     # a.calcAllSnapshotFiles()
     #  if you want to find the minimum from the all snapshots do this:
-    a.calcAllSnapshotFiles_temperature()
+    a.calcAllSnapshotFilesForTwoModels_temperature()
     # if you want to check only one snapshot do this:
     # a.calcSelectedSnapshotFile()
 
