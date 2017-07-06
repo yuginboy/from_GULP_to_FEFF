@@ -161,7 +161,7 @@ class FTR_gulp_to_feff_A_model():
         # self.theory_SimpleComposition = Spectrum()
         # self.theory_LinearComposition = Spectrum()
 
-        self.do_SimpleSpectraComposition = False
+        self.do_SimpleSpectraComposition = True
         self.do_LinearSpectraComposition = False
         self.do_FTR_from_linear_Chi_k_SpectraComposition = True
 
@@ -757,7 +757,7 @@ class FTR_gulp_to_feff_A_model():
         # store table to ASCII file:
         self.table.outDirPath = self.outMinValsDir
         timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
-        # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        modelName, snapNumberStr = self.get_name_of_model_from_fileName()
         self.table.outFileName = modelName + timestamp + '_So={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
                                                                                              self.scale_theory_factor_FTR)
         self.table.writeToASCIIFile()
@@ -790,6 +790,12 @@ class FTR_gulp_to_feff_A_model():
 
         self.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
         self.setOfSnapshotSpectra.set_ideal_curve_params()
+
+        self.model_A.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.model_A.setOfSnapshotSpectra.set_ideal_curve_params()
+        self.model_B.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.model_B.setOfSnapshotSpectra.set_ideal_curve_params()
+
         currentSerialSnapNumber_modelA = 0
 
         for filePath_A in self.model_A.listOfSnapshotFiles:
@@ -874,6 +880,11 @@ class FTR_gulp_to_feff_A_model():
                     self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
                                            modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))
+
+                    # do not want to change methods
+                    # updatePlotOfSnapshotsComposition_Simple() in this class therefor do deepcopy:
+                    self.setOfSnapshotSpectra.flushDictOfSpectra()
+                    self.setOfSnapshotSpectra = copy.deepcopy(self.model_A.setOfSnapshotSpectra)
                     self.updatePlotOfSnapshotsComposition_Simple()
                     # save ASCII column data:
                     self.model_A.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
@@ -959,6 +970,11 @@ class FTR_gulp_to_feff_A_model():
                             self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
                                                    modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
                                 round(self.minimum.Rtot, 4))
+
+                            # do not want to change methods
+                            # updatePlotOfSnapshotsComposition_Simple() in this class therefor do deepcopy:
+                            self.setOfSnapshotSpectra.flushDictOfSpectra()
+                            self.setOfSnapshotSpectra = copy.deepcopy(self.model_B.setOfSnapshotSpectra)
                             self.updatePlotOfSnapshotsComposition_Simple()
                             # save ASCII column data:
                             self.model_B.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
@@ -968,8 +984,12 @@ class FTR_gulp_to_feff_A_model():
                         currentSpectra_model_B_resultSimpleComposition = \
                             copy.deepcopy(self.model_B.setOfSnapshotSpectra.result_simple)
 
+
                         # if model A and B are loaded then calc linear composition of two resulting spectra
                         # from these two models:
+
+                        #     flush Dict of Set of TWO models results:
+                        self.setOfSnapshotSpectra.flushDictOfSpectra()
                         currentSpectra_model_A_resultSimpleComposition.label = self.model_A.get_Model_name()
                         self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_A_resultSimpleComposition)
                         currentSpectra_model_B_resultSimpleComposition.label = self.model_B.get_Model_name()
@@ -1123,13 +1143,17 @@ class FTR_gulp_to_feff_A_model():
         :return:
         '''
         import tkinter as tk
-        from tkinter import filedialog
+        from tkinter import filedialog, messagebox
         # open GUI filedialog to select feff_0001 working directory:
         a = StoreAndLoadVars()
+        a.fileNameOfStoredVars = 'model_single.pckl'
         print('last used: {}'.format(a.getLastUsedDirPath()))
         # openfile dialoge
         root = tk.Tk()
         root.withdraw()
+        txt_info = "select the model FEFF-out folder\nN={} Mn atoms".format(
+            self.numberOfSerialEquivalentAtoms)
+        messagebox.showinfo("info", txt_info)
         dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
         if os.path.isdir(dir_path):
             a.lastUsedDirPath = dir_path
@@ -1180,7 +1204,9 @@ class FTR_gulp_to_feff_A_model():
         root.withdraw()
 
         # load A-model data:
-        messagebox.showinfo("info", "select the A-model FEFF-out folder")
+        txt_info = "select the A-model FEFF-out folder\nN={} Mn atoms".format(
+            self.model_A.numberOfSerialEquivalentAtoms)
+        messagebox.showinfo("info", txt_info)
         dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
         if os.path.isdir(dir_path):
             a.lastUsedDirPath = dir_path
@@ -1197,7 +1223,9 @@ class FTR_gulp_to_feff_A_model():
         # load B-model data:
         b = StoreAndLoadVars()
         b.fileNameOfStoredVars = 'model_b_vars.pckl'
-        messagebox.showinfo("info", "select the B-model FEFF-out folder")
+        txt_info = "select the B-model FEFF-out folder\nN={} Mn atoms".format(
+            self.model_B.numberOfSerialEquivalentAtoms)
+        messagebox.showinfo("info", txt_info)
         dir_path = filedialog.askdirectory(initialdir=b.getLastUsedDirPath())
         if os.path.isdir(dir_path):
             b.lastUsedDirPath = dir_path
@@ -1231,7 +1259,7 @@ class FTR_gulp_to_feff_A_model():
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
-        self.findBestSnapshotFromList()
+        self.findBestSnapshotsCombinationFromTwoModels()
 
 
 
@@ -1288,6 +1316,9 @@ if __name__ == '__main__':
     a.calcAllSnapshotFilesForTwoModels_temperature()
     # if you want to check only one snapshot do this:
     # a.calcSelectedSnapshotFile()
+
+
+
 
     # # start calculate only snapshot file:
     # a = FTR_gulp_to_feff_A_model()
