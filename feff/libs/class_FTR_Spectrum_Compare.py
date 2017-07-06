@@ -22,6 +22,21 @@ class Model_for_spectra():
         # How many serial snapshots from different center atoms we have:
         self.numberOfSerialEquivalentAtoms = 2
 
+        # store to the ASCII table on a file:
+        self.table = TableData()
+
+        # weights of R-factors (Rtot = (Rchi* w1 + Rrtf*w2)/(w1+w2)):
+        # weights for calc tota R-factor in minimization procedure
+        self.weight_R_factor_FTR = 1
+        self.weight_R_factor_chi = 1
+
+        # coefficient for multiplying theory spectra in FTR space
+        self.scale_theory_factor_FTR = 1
+        self.scale_experiment_factor_FTR = 1
+
+        # coefficient for multiplying theory spectra in CHI space
+        self.scale_theory_factor_CHI = 1
+
         self.listOfSnapshotFiles = []
         self.projectWorkingFEFFoutDirectory = '/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001'
 
@@ -36,6 +51,33 @@ class Model_for_spectra():
         name = os.path.split(os.path.basename(path))[1]
         name = name.split('.')[0]
         return modelName
+
+    def get_name_of_model_from_fileName(self):
+        modelName = os.path.split(os.path.split(os.path.dirname(self.theory.pathToLoadDataFile))[0])[1]
+        name = os.path.split(os.path.basename(self.theory.pathToLoadDataFile))[1]
+        name = name.split('.')[0]
+        # take only the number of snapshot:
+        snapNumberStr = name.split('chi_'+modelName+'_')[1]
+        snapNumberStr = snapNumberStr.split('_')[0]
+        return modelName, snapNumberStr
+
+    def updateInfo(self):
+        modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+
+        self.theory.label_latex = 'model: ' + modelName + 'snapshot: {0}'.format(snapNumberStr)
+
+
+        self.theory.label = snapNumberStr
+
+    def get_R_factor(self):
+        R_chi = self.theory.get_chi_R_factor()
+        R_ftr = self.theory.get_FTR_R_factor()
+
+        R_tot = (self.weight_R_factor_FTR * R_ftr + self.weight_R_factor_chi * R_chi) / \
+                (self.weight_R_factor_FTR + self.weight_R_factor_chi)
+
+        return R_tot, R_ftr, R_chi
+
 
 class FTR_gulp_to_feff_A_model():
     '''
@@ -57,7 +99,7 @@ class FTR_gulp_to_feff_A_model():
         self.model_A = Model_for_spectra()
         self.model_A.numberOfSerialEquivalentAtoms = 2
         self.model_B = Model_for_spectra()
-        self.model_B.numberOfSerialEquivalentAtoms = 2
+        self.model_B.numberOfSerialEquivalentAtoms = 3
 
 
         # user's parameters for xftf preparation ['PK'- Pavel Konstantinov, 'ID' - Iraida Demchenko]:
@@ -343,9 +385,10 @@ class FTR_gulp_to_feff_A_model():
             if self.scale_theory_factor_FTR == 1:
                 out_file_name =  snapNumberStr + '_R={0:1.4}.png'.format(self.minimum.Rtot)
             else:
-                out_file_name =  snapNumberStr + '_So={1:1.3f}_R={0:1.4}.png'.format(self.minimum.Rtot,
-                                                                                    self.scale_theory_factor_FTR)
+                out_file_name =  snapNumberStr + \
+                                 '_So={1:1.3f}_R={0:1.4}.png'.format(self.minimum.Rtot, self.scale_theory_factor_FTR)
             self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+
     def updatePlotOfSnapshotsComposition_Simple(self, saveFigs=True):
 
         if self.showFigs:
@@ -747,140 +790,252 @@ class FTR_gulp_to_feff_A_model():
 
         self.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
         self.setOfSnapshotSpectra.set_ideal_curve_params()
-        currentSerialSnapNumber = 0
+        currentSerialSnapNumber_modelA = 0
 
-        for filePath in self.listOfSnapshotFiles:
+        for filePath_A in self.model_A.listOfSnapshotFiles:
+            # model A
             number = number + 1
-            print('==> file is: {0}'.format(filePath))
+            print('==> file is: {0}'.format(filePath_A))
             print('==> Number is: {0}'.format(number))
-            currentSerialSnapNumber = currentSerialSnapNumber + 1
-            self.theory_one.pathToLoadDataFile = filePath
-            self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
-            self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
-            self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-            self.theory_one.loadSpectrumData()
-            self.updateInfo()
 
-            modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+            currentSerialSnapNumber_modelA = currentSerialSnapNumber_modelA + 1
 
-            currentSpectra = copy.deepcopy(self.theory_one)
+            self.model_A.theory.pathToLoadDataFile = filePath_A
+            self.model_A.theory.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.model_A.theory.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.model_A.theory.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.model_A.theory.loadSpectrumData()
+            self.model_A.updateInfo()
 
-            self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra)
-            self.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
-            self.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
-            self.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-            self.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
+            modelName, snapNumberStr = self.model_A.get_name_of_model_from_fileName()
+
+            currentSpectra = copy.deepcopy(self.model_A.theory)
+
+            self.model_A.setOfSnapshotSpectra.addSpectraToDict(currentSpectra)
+            # do not need weights, we only create linear combination of model_A spectra
+            self.model_A.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
+            self.model_A.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+            self.model_A.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.model_A.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            self.model_A.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
                 self.experiment.label_latex_ideal_curve
 
-            self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = self.scale_theory_factor_FTR
-            self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = self.scale_theory_factor_FTR
-            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.model_A.setOfSnapshotSpectra.result.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.model_A.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            self.model_A.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = self.scale_theory_factor_FTR
 
-            self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = self.scale_theory_factor_CHI
-            self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = self.scale_theory_factor_CHI
-            self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.model_A.setOfSnapshotSpectra.result.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.model_A.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            self.model_A.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = self.scale_theory_factor_CHI
 
-            R_tot, R_ftr, R_chi = self.get_R_factor()
+            R_tot, R_ftr, R_chi = self.model_A.get_R_factor()
 
             self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
             self.currentValues.number = number
-            self.currentValues.snapshotName = os.path.basename(filePath)
+            self.currentValues.snapshotName = os.path.basename(filePath_A)
             self.table.addRecord(self.currentValues)
             if R_tot < self.minimum.Rtot:
+                # check single spectrum for best fit:
                 self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                # model A
+                self.theory_one.pathToLoadDataFile = self.model_A.theory.pathToLoadDataFile
+                self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                self.theory_one.loadSpectrumData()
+                self.updateInfo()
                 self.updatePlot()
 
-            if currentSerialSnapNumber == self.numberOfSerialEquivalentAtoms:
+            if currentSerialSnapNumber_modelA == self.model_A.numberOfSerialEquivalentAtoms:
 
+                currentSerialSnapNumber_modelA = 0
 
-                currentSerialSnapNumber = 0
+                # ----- Simple Composition of Snapshots:
+                self.model_A.setOfSnapshotSpectra.calcSimpleSpectraComposition()
+                print('Simple composition has been calculated')
+                self.model_A.setOfSnapshotSpectra.updateInfo_SimpleComposition()
+                number = number + 1
+                R_tot, R_ftr, R_chi = self.model_A.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
+                self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                self.currentValues.number = number
+                self.currentValues.snapshotName = self.model_A.setOfSnapshotSpectra.result_simple.label
+                self.table.addRecord(self.currentValues)
 
-                if self.do_SimpleSpectraComposition:
-                    # ----- Simple Composition of Snapshots:
-                    self.setOfSnapshotSpectra.calcSimpleSpectraComposition()
-                    print('Simple composition has been calculated')
-                    self.setOfSnapshotSpectra.updateInfo_SimpleComposition()
+                self.theory_one = copy.deepcopy(self.model_A.setOfSnapshotSpectra.result_simple)
+                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+
+                # store current result of model-A simple composition:
+                currentSpectra_model_A_resultSimpleComposition = \
+                    copy.deepcopy(self.model_A.setOfSnapshotSpectra.result_simple)
+
+                if R_tot < self.minimum.Rtot:
+                    # check single model simple composition for best fit:
+                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                    self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                           modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                        round(self.minimum.Rtot, 4))
+                    self.updatePlotOfSnapshotsComposition_Simple()
+                    # save ASCII column data:
+                    self.model_A.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
+                        output_dir=self.outMinValsDir)
+
+                # intrinsic loop for Model-B snapshots   --------------------------------------------------------------
+                currentSerialSnapNumber_modelB = 0
+
+                for filePath_B in self.model_B.listOfSnapshotFiles:
+                    # model A
                     number = number + 1
-                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
+                    print('==> file is: {0}'.format(filePath_B))
+                    print('==> Number is: {0}'.format(number))
+
+                    currentSerialSnapNumber_modelB = currentSerialSnapNumber_modelB + 1
+
+                    self.model_B.theory.pathToLoadDataFile = filePath_B
+                    self.model_B.theory.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                    self.model_B.theory.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+                    self.model_B.theory.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    self.model_B.theory.loadSpectrumData()
+                    self.model_B.updateInfo()
+
+                    modelName, snapNumberStr = self.model_B.get_name_of_model_from_fileName()
+
+                    currentSpectra = copy.deepcopy(self.model_B.theory)
+
+                    self.model_B.setOfSnapshotSpectra.addSpectraToDict(currentSpectra)
+                    # do not need weights, we only create linear combination of model_B spectra
+                    self.model_B.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
+                    self.model_B.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+                    self.model_B.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    self.model_B.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    self.model_B.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
+                        self.experiment.label_latex_ideal_curve
+
+                    self.model_B.setOfSnapshotSpectra.result.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                    self.model_B.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                    self.model_B.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+
+                    self.model_B.setOfSnapshotSpectra.result.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+                    self.model_B.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+                    self.model_B.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+
+                    R_tot, R_ftr, R_chi = self.model_B.get_R_factor()
+
                     self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
                     self.currentValues.number = number
-                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_simple.label
+                    self.currentValues.snapshotName = os.path.basename(filePath_B)
                     self.table.addRecord(self.currentValues)
-
-                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_simple)
-                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                     if R_tot < self.minimum.Rtot:
+                        # check single spectrum for best fit:
                         self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
-                                               modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
-                            round(self.minimum.Rtot, 4))
-                        self.updatePlotOfSnapshotsComposition_Simple()
-                        # save ASCII column data:
-                        self.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
-                            output_dir=self.outMinValsDir)
+                        # model B:
+                        self.theory_one.pathToLoadDataFile = self.model_B.theory.pathToLoadDataFile
+                        self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                        self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+                        self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                        self.theory_one.loadSpectrumData()
+                        self.updateInfo()
+                        self.updatePlot()
 
-                if self.do_FTR_from_linear_Chi_k_SpectraComposition:
-                # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
-                    self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
-                    print('Linear FTR from Chi(k) composition has been calculated')
-                    self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
-                    number = number + 1
-                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
-                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
-                    self.currentValues.number = number
-                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label
-                    self.table.addRecord(self.currentValues)
+                    if currentSerialSnapNumber_modelB == self.model_B.numberOfSerialEquivalentAtoms:
 
-                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
-                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-                    if R_tot < self.minimum.Rtot:
-                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
-                                               modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
-                            round(R_tot, 4))
-                        self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
-                        # save ASCII column data:
-                        self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
-                            output_dir=self.outMinValsDir)
+                        currentSerialSnapNumber_modelB = 0
+
+                        # ----- Simple Composition of Snapshots:
+                        self.model_B.setOfSnapshotSpectra.calcSimpleSpectraComposition()
+                        print('Simple composition has been calculated')
+                        self.model_B.setOfSnapshotSpectra.updateInfo_SimpleComposition()
+                        number = number + 1
+                        R_tot, R_ftr, R_chi = self.model_B.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
+                        self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                        self.currentValues.number = number
+                        self.currentValues.snapshotName = self.model_B.setOfSnapshotSpectra.result_simple.label
+                        self.table.addRecord(self.currentValues)
+
+                        self.theory_one = copy.deepcopy(self.model_B.setOfSnapshotSpectra.result_simple)
+                        self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                        if R_tot < self.minimum.Rtot:
+                            # check single model simple composition for best fit:
+                            self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                            self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                                   modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                                round(self.minimum.Rtot, 4))
+                            self.updatePlotOfSnapshotsComposition_Simple()
+                            # save ASCII column data:
+                            self.model_B.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
+                                output_dir=self.outMinValsDir)
+
+                        # store current result of model-B simple composition:
+                        currentSpectra_model_B_resultSimpleComposition = \
+                            copy.deepcopy(self.model_B.setOfSnapshotSpectra.result_simple)
+
+                        # if model A and B are loaded then calc linear composition of two resulting spectra
+                        # from these two models:
+                        currentSpectra_model_A_resultSimpleComposition.label = self.model_A.get_Model_name()
+                        self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_A_resultSimpleComposition)
+                        currentSpectra_model_B_resultSimpleComposition.label = self.model_B.get_Model_name()
+                        self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_B_resultSimpleComposition)
+
+                        self.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
+                        self.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+                        self.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                        self.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                        self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
+                            self.experiment.label_latex_ideal_curve
+
+                        # self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                        # self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                        # self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+                        #
+                        # self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+                        # self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+                        # self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+
+                        # we already did (applied scale factors) it in model_A and model_B:
+                        self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = 1
+                        self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = 1
+                        self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = 1
+
+                        self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = 1
+                        self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = 1
+                        self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = 1
 
 
-                if self.do_LinearSpectraComposition:
-                # ----- Linear Composition of Snapshots:
-                    self.setOfSnapshotSpectra.calcLinearSpectraComposition()
-                    print('Linear composition has been calculated')
-                    self.setOfSnapshotSpectra.updateInfo_LinearComposition()
-                    number = number + 1
-                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition()
-                    self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
-                    self.currentValues.number = number
-                    self.currentValues.snapshotName = self.setOfSnapshotSpectra.result.label
-                    self.table.addRecord(self.currentValues)
+                        if self.do_FTR_from_linear_Chi_k_SpectraComposition:
+                        # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
+                            self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
+                            print('Linear FTR from Chi(k) composition has been calculated')
+                            self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
+                            number = number + 1
+                            R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+                            self.currentValues.Rtot, self.currentValues.Rftr, self.currentValues.Rchi = R_tot, R_ftr, R_chi
+                            self.currentValues.number = number
+                            self.currentValues.snapshotName = self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label
+                            self.table.addRecord(self.currentValues)
 
-                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result)
-                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-                    if R_tot < self.minimum.Rtot:
-                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
-                                               modelName + ', linear snapshots composition,  $R_{{tot}}$  = {0}'.format(
-                            round(self.minimum.Rtot, 4))
-                        self.updatePlotOfSnapshotsComposition_Linear()
-                        # save ASCII column data:
-                        self.setOfSnapshotSpectra.saveSpectra_LinearComposition(
-                            output_dir=self.outMinValsDir)
+                            self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
+                            self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                            if R_tot < self.minimum.Rtot:
+                                self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                                self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                                       modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                                    round(R_tot, 4))
+                                self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+                                # save ASCII column data:
+                                self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                                    output_dir=self.outMinValsDir)
 
-
-
-
-
-                #     flush Dict of Set of Snapshots
-                self.setOfSnapshotSpectra.flushDictOfSpectra()
-
+                        #     flush Dict of Set of TWO models results:
+                        self.setOfSnapshotSpectra.flushDictOfSpectra()
+                        #     flush Dict of Set of model-B Snapshots:
+                        self.model_B.setOfSnapshotSpectra.flushDictOfSpectra()
+                #     flush Dict of Set of model-A Snapshots:
+                self.model_A.setOfSnapshotSpectra.flushDictOfSpectra()
 
         # store table to ASCII file:
         self.table.outDirPath = self.outMinValsDir
         timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
         # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        modelName = self.model_A.get_Model_name() + '_and_' + self.model_B.get_Model_name()
         self.table.outFileName = modelName + timestamp + '_So={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
                                                                                              self.scale_theory_factor_FTR)
         self.table.writeToASCIIFile()
@@ -1018,6 +1173,7 @@ class FTR_gulp_to_feff_A_model():
 
         # open GUI filedialog to select feff_0001 working directory:
         a = StoreAndLoadVars()
+        a.fileNameOfStoredVars = 'model_a_vars.pckl'
         print('last used: {}'.format(a.getLastUsedDirPath()))
         # openfile dialoge
         root = tk.Tk()
@@ -1039,11 +1195,13 @@ class FTR_gulp_to_feff_A_model():
         # ==============================================================================================================
 
         # load B-model data:
+        b = StoreAndLoadVars()
+        b.fileNameOfStoredVars = 'model_b_vars.pckl'
         messagebox.showinfo("info", "select the B-model FEFF-out folder")
-        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        dir_path = filedialog.askdirectory(initialdir=b.getLastUsedDirPath())
         if os.path.isdir(dir_path):
-            a.lastUsedDirPath = dir_path
-            a.saveLastUsedDirPath()
+            b.lastUsedDirPath = dir_path
+            b.saveLastUsedDirPath()
 
         # change the working directory path to selected one:
         self.projectWorkingFEFFoutDirectory = dir_path
