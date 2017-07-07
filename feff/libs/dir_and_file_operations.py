@@ -31,6 +31,19 @@ def create_out_data_folder(main_folder_path, first_part_of_folder_name = ''):
         i+=1
     return  out_data_folder_path
 
+def create_data_folder(main_folder_path, first_part_of_folder_name = ''):
+    '''
+    create directory
+    :param main_folder_path: path to the main project folder
+    :return: full path to the new directory
+    return folder path like: main_folder_path + first_part_of_folder_name + '%04d' % i
+    '''
+
+    out_data_folder_path = os.path.join(main_folder_path, first_part_of_folder_name)
+    if  not (os.path.isdir(out_data_folder_path)):
+        os.makedirs(out_data_folder_path, exist_ok=True)
+    return  out_data_folder_path
+
 
 def listOfFiles(dirToScreens):
     '''

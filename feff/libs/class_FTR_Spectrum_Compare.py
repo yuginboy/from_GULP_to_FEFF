@@ -9,7 +9,7 @@ import os
 import datetime
 import copy
 from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
-    listOfFilesFN_with_selected_ext, create_out_data_folder
+    listOfFilesFN_with_selected_ext, create_out_data_folder, create_data_folder
 from feff.libs.class_StoreAndLoadVars import StoreAndLoadVars
 from feff.libs.class_SpectraSet import SpectraSet
 import matplotlib.pyplot as plt
@@ -152,6 +152,8 @@ class FTR_gulp_to_feff_A_model():
 
         self.model_A.theory = copy.deepcopy(self.theory_one)
         self.model_B.theory = copy.deepcopy(self.theory_one)
+
+        self.outDirectoryForTowModelsFitResults = '/home/yugin/VirtualboxShare/GaMnO/out_fit_two_models'
 
         # self.theory_one.loadSpectrumData()
 
@@ -776,13 +778,13 @@ class FTR_gulp_to_feff_A_model():
         mask_ss = mask_ss + self.outMinValsDir_mask
 
         if (self.weight_R_factor_FTR / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
-            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryForTowModelsFitResults,
                                                         first_part_of_folder_name=self.user+'_Rmin=Rchi'+mask_ss)
         elif (self.weight_R_factor_chi / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
-            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryForTowModelsFitResults,
                                                         first_part_of_folder_name=self.user+'_Rmin=Rftr'+mask_ss)
         else:
-            self.outMinValsDir = create_out_data_folder(main_folder_path=self.projectWorkingFEFFoutDirectory,
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryForTowModelsFitResults,
                                                         first_part_of_folder_name=self.user+'_Rmin=Rtot'+mask_ss)
         self.setupAxes()
         number = 0
@@ -1036,13 +1038,22 @@ class FTR_gulp_to_feff_A_model():
                             self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
                             if R_tot < self.minimum.Rtot:
                                 self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                                modelNameTxt = self.setOfSnapshotSpectra.getInfo_LinearComposition_FTR_from_linear_Chi_k()
                                 self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
-                                                       modelName + ', linear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                                modelNameTxt + \
+                                ',\nlinear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
                                     round(R_tot, 4))
+                                self.suptitle_fontsize = 14
                                 self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+                                self.suptitle_fontsize = 18
                                 # save ASCII column data:
                                 self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
                                     output_dir=self.outMinValsDir)
+
+                                #store model-A snapshots for this minimum case:
+                                self.model_A.setOfSnapshotSpectra.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                                #store model-B snapshots for this minimum case:
+                                self.model_B.setOfSnapshotSpectra.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
 
                         #     flush Dict of Set of TWO models results:
                         self.setOfSnapshotSpectra.flushDictOfSpectra()
@@ -1238,7 +1249,19 @@ class FTR_gulp_to_feff_A_model():
         # self.getInDirectoryStandardFilePathes()
         self.model_B.listOfSnapshotFiles = listOfFilesFN_with_selected_ext(self.model_B.projectWorkingFEFFoutDirectory,
                                                                            ext='dat')
-        # ==============================================================================================================                                                                   ext='dat')
+        # ==============================================================================================================
+        # select outDirectoryForTowModelsFitResults:
+        c = StoreAndLoadVars()
+        c.fileNameOfStoredVars = 'outdir_vars.pckl'
+        txt_info = "select the directory to store the results\nof two A-B models fitting"
+        messagebox.showinfo("info", txt_info)
+        dir_path = filedialog.askdirectory(initialdir=c.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            c.lastUsedDirPath = dir_path
+            c.saveLastUsedDirPath()
+
+        maskTxt = '[{0}]__[{1}]'.format(self.model_A.get_Model_name(), self.model_B.get_Model_name())
+        self.outDirectoryForTowModelsFitResults = create_data_folder(dir_path, maskTxt)
 
         if self.user == 'PK':
             self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',

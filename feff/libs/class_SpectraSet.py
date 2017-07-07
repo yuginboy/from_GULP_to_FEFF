@@ -302,6 +302,17 @@ class SpectraSet():
         txt = 'complex spectra ' + 'FTR(linear $\chi$) R={0:1.4f}'.format(R_tot)
         self.result_FTR_from_linear_Chi_k.label_latex = txt
 
+    def getInfo_LinearComposition_FTR_from_linear_Chi_k(self):
+        # return only the formula of snapshot name and coefficient
+        txt = ''
+        num = len(self.dictOfSpectra)
+        for i in self.dictOfSpectra:
+            val = self.dictOfSpectra[i]
+            txt = txt + '{0}x[{1}]'.format( round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 3),
+                                           val['data'].label )
+            if i < num-1:
+                txt = txt + ' + '
+        return txt
 
 
     def plotSpectra_FTR_r_SimpleComposition(self):
