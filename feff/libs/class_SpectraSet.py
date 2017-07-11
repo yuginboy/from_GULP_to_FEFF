@@ -164,7 +164,7 @@ class SpectraSet():
         self.result.chi_vector = tmp_chi_vector
         self.result.ftr_vector = tmp_ftr_vector
 
-    def calcLinearSpectraComposition_FTR_from_linear_Chi_k(self, method='differential_evolution'):
+    def calcLinearSpectraComposition_FTR_from_linear_Chi_k(self, method='minimize'):
         # calc the minimum of Rfactros minimum R_chi+R_ftr
         num = len(self.dictOfSpectra)
         x0 = np.zeros(num)
@@ -183,7 +183,7 @@ class SpectraSet():
 
         # res_tmp = func(x0)
         if method == 'minimize':
-            res = minimize(func, x0=x0, bounds=bounds, options={'gtol': 1e-6, 'disp': True})
+            res = minimize(func, x0=x0, bounds=bounds, options={'gtol': 1e-6, 'disp': False})
         elif method == 'differential_evolution':
             res = differential_evolution(func, bounds)
 

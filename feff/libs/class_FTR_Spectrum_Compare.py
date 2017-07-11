@@ -7,6 +7,7 @@
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
 import os
 import datetime
+from timeit import default_timer as timer
 import copy
 from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
     listOfFilesFN_with_selected_ext, create_out_data_folder, create_data_folder
@@ -173,6 +174,8 @@ class FTR_gulp_to_feff_A_model():
         self.do_SimpleSpectraComposition = True
         self.do_LinearSpectraComposition = False
         self.do_FTR_from_linear_Chi_k_SpectraComposition = True
+
+        self.saveDataToDisk = True
 
 
         self.set_ideal_curve_params()
@@ -396,7 +399,8 @@ class FTR_gulp_to_feff_A_model():
             else:
                 out_file_name =  snapNumberStr + \
                                  '_So={1:1.3f}_R={0:1.4}.png'.format(self.minimum.Rtot, self.scale_theory_factor_FTR)
-            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+            if self.saveDataToDisk:
+                self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def updatePlotOfSnapshotsComposition_Simple(self, saveFigs=True):
 
@@ -465,7 +469,9 @@ class FTR_gulp_to_feff_A_model():
             else:
                 out_file_name =  self.theory_one.label + '_So={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
                                                                                            self.scale_theory_factor_FTR)
-            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+            if self.saveDataToDisk:
+                self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+
     def updatePlotOfSnapshotsComposition_Linear(self, saveFigs=True):
 
         if self.showFigs:
@@ -533,7 +539,9 @@ class FTR_gulp_to_feff_A_model():
             else:
                 out_file_name =  self.theory_one.label + '_So={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
                                                                                            self.scale_theory_factor_FTR)
-            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+            if self.saveDataToDisk:
+                self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+
     def updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k(self, saveFigs=True):
 
         if self.showFigs:
@@ -601,7 +609,8 @@ class FTR_gulp_to_feff_A_model():
             else:
                 out_file_name =  self.theory_one.label + '_So={1:1.3}_R={0:1.4}.png'.format(self.minimum.Rtot,
                                                                                            self.scale_theory_factor_FTR)
-            self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+            if self.saveDataToDisk:
+                self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
 
     def findBestSnapshotFromList(self):
         '''
@@ -823,6 +832,7 @@ class FTR_gulp_to_feff_A_model():
                                       widgets=[progressbar.Bar('=', '[', ']'), ' ',
                                                progressbar.Percentage()])
         i = 0
+        start = timer()
         for i in self.model_A.dictOfAllSnapshotsInDirectory:
             # model A
             bar.update(i)
@@ -885,6 +895,8 @@ class FTR_gulp_to_feff_A_model():
                     if R_tot < self.minimum.Rtot:
                         self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
                         modelNameTxt = self.setOfSnapshotSpectra.getInfo_LinearComposition_FTR_from_linear_Chi_k()
+                        self.minimum.snapshotName = modelNameTxt + '\n' + current_model_A.result_simple.label_latex + \
+                                                    '\n' + current_model_B.result_simple.label_latex
                         self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
                         modelNameTxt + \
                         ',\nlinear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
@@ -893,13 +905,14 @@ class FTR_gulp_to_feff_A_model():
                         self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
                         self.suptitle_fontsize = 18
                         # save ASCII column data:
-                        self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                        if self.saveDataToDisk:
+                            self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
                             output_dir=self.outMinValsDir)
 
-                        #store model-A snapshots for this minimum case:
-                        current_model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
-                        #store model-B snapshots for this minimum case:
-                        current_model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                            #store model-A snapshots for this minimum case:
+                            current_model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                            #store model-B snapshots for this minimum case:
+                            current_model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
 
                 #     flush Dict of Set of TWO models results:
                 self.setOfSnapshotSpectra.flushDictOfSpectra()
@@ -911,6 +924,10 @@ class FTR_gulp_to_feff_A_model():
         bar.finish()
         print()
         print ('minimum Rtot = {}'.format(self.minimum.Rtot))
+        print ('{}'.format(self.minimum.snapshotName))
+        runtime = timer() - start
+        print("runtime is {0:f} seconds".format(runtime))
+
         # # store table to ASCII file:
         # self.table.outDirPath = self.outMinValsDir
         # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
@@ -1226,7 +1243,8 @@ class FTR_gulp_to_feff_A_model():
                     # self.setOfSnapshotSpectra.flushDictOfSpectra()
                     self.updatePlotOfSnapshotsComposition_Simple()
                     # save ASCII column data:
-                    self.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
+                    if self.saveDataToDisk:
+                        self.setOfSnapshotSpectra.saveSpectra_SimpleComposition(
                         output_dir=self.outMinValsDir)
 
                 # store current result of model-i simple composition:
@@ -1297,12 +1315,13 @@ if __name__ == '__main__':
     a.sample_preparation_mode = 'AG'
     # if you want compare with the theoretical average, do this:
     # a.calcAllSnapshotFiles()
+
+    # for debug and profiling:
+    a.saveDataToDisk = True
     #  if you want to find the minimum from the all snapshots do this:
     a.calcAllSnapshotFilesForTwoModels_temperature()
     # if you want to check only one snapshot do this:
     # a.calcSelectedSnapshotFile()
-
-
 
 
     # # start calculate only snapshot file:
