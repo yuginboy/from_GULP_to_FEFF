@@ -1317,7 +1317,7 @@ if __name__ == '__main__':
     # a.calcAllSnapshotFiles()
 
     # for debug and profiling:
-    a.saveDataToDisk = True
+    a.saveDataToDisk = False
     #  if you want to find the minimum from the all snapshots do this:
     a.calcAllSnapshotFilesForTwoModels_temperature()
     # if you want to check only one snapshot do this:
