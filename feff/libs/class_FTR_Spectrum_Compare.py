@@ -19,6 +19,8 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 
 import progressbar
+# from joblib import Parallel, delayed
+import pathos.multiprocessing as mp
 
 class Model_for_spectra():
     def __init__(self):
@@ -176,6 +178,7 @@ class FTR_gulp_to_feff_A_model():
         self.do_FTR_from_linear_Chi_k_SpectraComposition = True
 
         self.saveDataToDisk = True
+        self.parallel_job_numbers = 2
 
 
         self.set_ideal_curve_params()
@@ -937,6 +940,167 @@ class FTR_gulp_to_feff_A_model():
         #                                                                                      self.scale_theory_factor_FTR)
         # self.table.writeToASCIIFile()
 
+    def findBestSnapshotsCombinationFromTwoModels_parallel(self):
+        '''
+        searching procedure of Two Models (A - first, B - second) linear model:
+        k/n(A1 + A2 + .. + An) + (1-k)/m(B1 + B2 + .. + Bm)
+        :return: k - coefficient which corresponds to concentration A phase in A-B compound
+        Parallel realization
+        '''
+        if self.scale_theory_factor_FTR == 1:
+            mask_ss = ''
+        else:
+            mask_ss = '_So={0:1.3f}'.format(self.scale_theory_factor_FTR)
+
+        mask_ss = mask_ss + self.outMinValsDir_mask
+
+        if (self.weight_R_factor_FTR / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryForTowModelsFitResults,
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rchi'+mask_ss)
+        elif (self.weight_R_factor_chi / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryForTowModelsFitResults,
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rftr'+mask_ss)
+        else:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryForTowModelsFitResults,
+                                                        first_part_of_folder_name=self.user+'_Rmin=Rtot'+mask_ss)
+        self.setupAxes()
+        number = 0
+
+
+        self.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.setOfSnapshotSpectra.set_ideal_curve_params()
+
+        self.model_A.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.model_A.setOfSnapshotSpectra.set_ideal_curve_params()
+        self.model_B.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.model_B.setOfSnapshotSpectra.set_ideal_curve_params()
+
+        # load all snapshots to the RAM
+        self.listOfSnapshotFiles = self.model_A.listOfSnapshotFiles
+        self.numberOfSerialEquivalentAtoms = self.model_A.numberOfSerialEquivalentAtoms
+        self.model_A.dictOfAllSnapshotsInDirectory = self.loadAllSpectraToDict()
+
+        self.listOfSnapshotFiles = self.model_B.listOfSnapshotFiles
+        self.numberOfSerialEquivalentAtoms = self.model_B.numberOfSerialEquivalentAtoms
+        self.model_B.dictOfAllSnapshotsInDirectory = self.loadAllSpectraToDict()
+
+
+        currentSerialSnapNumber_modelA = 0
+
+        length = len(self.model_A.dictOfAllSnapshotsInDirectory)
+
+        bar = progressbar.ProgressBar(maxval=length, \
+                                      widgets=[progressbar.Bar('=', '[', ']'), ' ',
+                                               progressbar.Percentage()])
+        i = 0
+        # define the function to parallel calculation
+        def func(i):
+            # model A
+            bar.update(i)
+
+            val = self.model_A.dictOfAllSnapshotsInDirectory[i]
+            current_model_A = val['data']
+
+            # store current result of model-A simple composition:
+            currentSpectra_model_A_resultSimpleComposition = \
+                copy.deepcopy(current_model_A.result_simple)
+
+            # -----------------------------------------------------------------------------------------------------
+            # intrinsic loop for Model-B snapshots   --------------------------------------------------------------
+            for j in self.model_B.dictOfAllSnapshotsInDirectory:
+                # model B
+                val = self.model_B.dictOfAllSnapshotsInDirectory[j]
+                current_model_B = val['data']
+
+                # store current result of model-B simple composition:
+                currentSpectra_model_B_resultSimpleComposition = \
+                    copy.deepcopy(current_model_B.result_simple)
+
+                # if model A and B were loaded then calc linear composition of two resulting spectra
+                # from these two models:
+
+                #     flush Dict of Set of TWO models results:
+                self.setOfSnapshotSpectra.flushDictOfSpectra()
+                currentSpectra_model_A_resultSimpleComposition.label = self.model_A.get_Model_name()
+                self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_A_resultSimpleComposition)
+                currentSpectra_model_B_resultSimpleComposition.label = self.model_B.get_Model_name()
+                self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_B_resultSimpleComposition)
+
+                self.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
+                self.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+                self.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                self.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
+                    self.experiment.label_latex_ideal_curve
+
+                # we already did (applied scale factors) it in model_A and model_B:
+                self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = 1
+                self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = 1
+                self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = 1
+
+                self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = 1
+                self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = 1
+                self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = 1
+
+                if self.do_FTR_from_linear_Chi_k_SpectraComposition:
+                    # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
+                    self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
+                    # print('Linear FTR from Chi(k) composition has been calculated')
+                    self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
+                    R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+
+                    self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
+                    self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    if R_tot < self.minimum.Rtot:
+                        self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                        modelNameTxt = self.setOfSnapshotSpectra.getInfo_LinearComposition_FTR_from_linear_Chi_k()
+                        self.minimum.snapshotName = modelNameTxt + '\n' + current_model_A.result_simple.label_latex + \
+                                                    '\n' + current_model_B.result_simple.label_latex
+                        self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                               modelNameTxt + \
+                                               ',\nlinear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                                                   round(R_tot, 4))
+                        self.suptitle_fontsize = 14
+                        self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+                        self.suptitle_fontsize = 18
+                        # save ASCII column data:
+                        if self.saveDataToDisk:
+                            self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                                output_dir=self.outMinValsDir)
+
+                            # store model-A snapshots for this minimum case:
+                            current_model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                            # store model-B snapshots for this minimum case:
+                            current_model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+
+                # flush Dict of Set of TWO models results:
+                self.setOfSnapshotSpectra.flushDictOfSpectra()
+                # #     flush Dict of Set of model-B Snapshots:
+                # self.model_B.setOfSnapshotSpectra.flushDictOfSpectra()
+                # #     flush Dict of Set of model-A Snapshots:
+                self.model_A.setOfSnapshotSpectra.flushDictOfSpectra()
+        # def func(i):
+        #     return np.sqrt(i)
+        start = timer()
+        p = mp.Pool(self.parallel_job_numbers)
+        p.map(lambda i : func(i), range(len(self.model_A.dictOfAllSnapshotsInDirectory)))
+        bar.update(i)
+        bar.finish()
+        print()
+        print ('minimum Rtot = {}'.format(self.minimum.Rtot))
+        print ('{}'.format(self.minimum.snapshotName))
+        runtime = timer() - start
+        print("runtime is {0:f} seconds".format(runtime))
+
+        # # store table to ASCII file:
+        # self.table.outDirPath = self.outMinValsDir
+        # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+        # # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        # modelName = self.model_A.get_Model_name() + '_and_' + self.model_B.get_Model_name()
+        # self.table.outFileName = modelName + timestamp + '_So={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
+        #                                                                                      self.scale_theory_factor_FTR)
+        # self.table.writeToASCIIFile()
+
     def calcSelectedSnapshotFile(self):
         '''
         calculate and plot graphs only for selected snapshot file
@@ -1148,7 +1312,7 @@ class FTR_gulp_to_feff_A_model():
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
-        self.findBestSnapshotsCombinationFromTwoModels()
+        self.findBestSnapshotsCombinationFromTwoModels_parallel()
         
     def loadAllSpectraToDict(self):
         # load all snapshots and prepare data for the next calculations
@@ -1317,7 +1481,7 @@ if __name__ == '__main__':
     # a.calcAllSnapshotFiles()
 
     # for debug and profiling:
-    a.saveDataToDisk = True
+    a.saveDataToDisk = False
 
     #  if you want to find the minimum from the all snapshots do this:
     a.calcAllSnapshotFilesForTwoModels_temperature()
