@@ -18,6 +18,9 @@ class BaseData():
         self.Rchi = []
         self.Rftr = []
         self.snapshotName = []
+        self.model_A = []
+        self.model_B = []
+        self.setOfSnapshots = []
 
     def fill_initials(self):
         self.number = 0
@@ -32,6 +35,9 @@ class BaseData():
         self.Rchi = []
         self.Rftr = []
         self.snapshotName = []
+        self.model_A = []
+        self.model_B = []
+        self.setOfSnapshots = []
 
 class TableData():
     '''
