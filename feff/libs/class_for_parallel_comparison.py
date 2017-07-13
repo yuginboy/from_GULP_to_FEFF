@@ -607,6 +607,7 @@ class FTR_gulp_to_feff_A_model_base():
                                                                                            self.scale_theory_factor_FTR)
             if self.saveDataToDisk:
                 self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+                self.minimum.pathToImage = os.path.join(self.outMinValsDir, out_file_name)
 
     def findBestSnapshotFromList(self):
         '''
@@ -893,7 +894,7 @@ class FTR_gulp_to_feff_A_model_base():
                         self.suptitle_fontsize = 18
                         self.minimum.model_A = copy.deepcopy(current_model_A)
                         self.minimum.model_B = copy.deepcopy(current_model_B)
-                        self.minimum.setOfSnapshots = copy.deepcopy(self.setOfSnapshotSpectra)
+                        self.minimum.setOfSnapshotSpectra = copy.deepcopy(self.setOfSnapshotSpectra)
                         # save ASCII column data:
                         if self.saveDataToDisk:
                             self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(

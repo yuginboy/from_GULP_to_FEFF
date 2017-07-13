@@ -18,9 +18,11 @@ class BaseData():
         self.Rchi = []
         self.Rftr = []
         self.snapshotName = []
+        self.pathToImage = []
+
         self.model_A = []
         self.model_B = []
-        self.setOfSnapshots = []
+        self.setOfSnapshotSpectra = []
 
     def fill_initials(self):
         self.number = 0
@@ -35,9 +37,10 @@ class BaseData():
         self.Rchi = []
         self.Rftr = []
         self.snapshotName = []
+        self.pathToImage = []
         self.model_A = []
         self.model_B = []
-        self.setOfSnapshots = []
+        self.setOfSnapshotSpectra = []
 
 class TableData():
     '''

@@ -10,6 +10,7 @@ import os
 import datetime
 from timeit import default_timer as timer
 import copy
+from shutil import copyfile
 from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
     listOfFilesFN_with_selected_ext, create_out_data_folder, create_data_folder
 from feff.libs.class_StoreAndLoadVars import StoreAndLoadVars
@@ -120,13 +121,16 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         # save ASCII column data:
         if self.saveDataToDisk:
             self.outMinValsDir = outDirectoryForTowModelsFitResults
-            result[minIdx[0]].setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+            obj = result[minIdx[0]]
+            obj.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
                 output_dir=self.outMinValsDir)
 
             # store model-A snapshots for this minimum case:
-            result[minIdx[0]].model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+            obj.model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
             # store model-B snapshots for this minimum case:
-            result[minIdx[0]].model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+            obj.model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+            dst = os.path.join(self.outMinValsDir, os.path.basename(obj.pathToImage))
+            copyfile(obj.pathToImage, dst)
 
         print('======'*10)
         print('======'*10)
@@ -164,7 +168,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 3
+    a.parallel_job_numbers = 5
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFromTwoModels_parallel()
