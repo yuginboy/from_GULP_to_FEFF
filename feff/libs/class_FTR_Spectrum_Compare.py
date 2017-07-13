@@ -114,8 +114,19 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         # bar.finish()
         vec_Rtot = list((i.Rtot for i in result))
         minIdx, = np.where(vec_Rtot == np.min(vec_Rtot))
-        Rtot = result[minIdx].Rtot
-        snapshotName = result[minIdx].snapshotName
+        Rtot = result[minIdx[0]].Rtot
+        snapshotName = result[minIdx[0]].snapshotName
+
+        # save ASCII column data:
+        if self.saveDataToDisk:
+            self.outMinValsDir = outDirectoryForTowModelsFitResults
+            result[minIdx[0]].setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                output_dir=self.outMinValsDir)
+
+            # store model-A snapshots for this minimum case:
+            result[minIdx[0]].model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+            # store model-B snapshots for this minimum case:
+            result[minIdx[0]].model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
 
         print('======'*10)
         print('======'*10)
@@ -140,7 +151,7 @@ if __name__ == '__main__':
     a.scale_theory_factor_FTR = 0.81
     a.scale_experiment_factor_FTR = 1.0
 
-    a.model_A.numberOfSerialEquivalentAtoms = 2
+    a.model_A.numberOfSerialEquivalentAtoms = 1
     a.model_B.numberOfSerialEquivalentAtoms = 2
 
     #  change the user name, which parameters for xftf transformation you want to use:
@@ -153,7 +164,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 10
+    a.parallel_job_numbers = 3
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFromTwoModels_parallel()

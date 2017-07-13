@@ -818,6 +818,9 @@ class FTR_gulp_to_feff_A_model_base():
                                       widgets=[progressbar.Bar('=', '[', ']'), ' ',
                                                progressbar.Percentage()])
         i = 0
+        self.minimum.Rtot = 1000
+        self.minimum.Rchi = 1000
+        self.minimum.Rftr = 1000
         start = timer()
         for i in self.model_A.dictOfAllSnapshotsInDirectory:
             # model A
@@ -1217,7 +1220,7 @@ class FTR_gulp_to_feff_A_model_base():
         model_B_modelName = os.path.split(os.path.split((model_B_projectWorkingFEFFoutDirectory))[0])[1]
         print(model_B_modelName)
         maskTxt = '[{0}]__[{1}]'.format(model_A_modelName, model_B_modelName)
-        outDirectoryForTowModelsFitResults = create_data_folder(dir_path, maskTxt)
+        outDirectoryForTowModelsFitResults = create_out_data_folder(dir_path, maskTxt)
 
         return model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
                model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
