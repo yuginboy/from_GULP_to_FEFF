@@ -19,6 +19,7 @@ class BaseData():
         self.Rftr = []
         self.snapshotName = []
         self.pathToImage = []
+        self.indicator_minimum_from_FTRlinear_chi = False
 
         self.model_A = []
         self.model_B = []

@@ -33,13 +33,13 @@ def load_chi_data(file_path):
     # select chi values only for k > 0 because FEFF output files contain the different length of k-vector:
     if len(data[:, 0]) == numOfRows - 1:
         chi[1:, 1] = data[:, 1]
-        print('theory data without 0-k point has been loaded')
+        # print('theory data without 0-k point has been loaded')
     elif len(data[:, 0]) == numOfRows:
         chi[:, 1] = data[:, 1]
-        print('theory data has been loaded')
+        # print('theory data has been loaded')
     elif len(data[:, 0]) < numOfRows - 1:
             chi = load_experimental_chi_data(file_path)
-            print('experimental data has been loaded')
+            # print('experimental data has been loaded')
     else:
         print('you have unexpected numbers of rows in your output files')
         print('input file name is: ', file_path)

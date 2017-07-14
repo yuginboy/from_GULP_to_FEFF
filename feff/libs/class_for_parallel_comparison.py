@@ -469,6 +469,7 @@ class FTR_gulp_to_feff_A_model_base():
                                                                                            self.scale_theory_factor_FTR)
             if self.saveDataToDisk:
                 self.fig.savefig(os.path.join(self.outMinValsDir, out_file_name))
+                self.minimum.pathToImage = os.path.join(self.outMinValsDir, out_file_name)
 
     def updatePlotOfSnapshotsComposition_Linear(self, saveFigs=True):
 
@@ -819,9 +820,9 @@ class FTR_gulp_to_feff_A_model_base():
                                       widgets=[progressbar.Bar('=', '[', ']'), ' ',
                                                progressbar.Percentage()])
         i = 0
-        self.minimum.Rtot = 1000
-        self.minimum.Rchi = 1000
-        self.minimum.Rftr = 1000
+        # self.minimum.Rtot = 1000
+        # self.minimum.Rchi = 1000
+        # self.minimum.Rftr = 1000
         start = timer()
         for i in self.model_A.dictOfAllSnapshotsInDirectory:
             # model A
@@ -872,6 +873,8 @@ class FTR_gulp_to_feff_A_model_base():
                 self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = 1
 
                 if self.do_FTR_from_linear_Chi_k_SpectraComposition:
+                    if i ==5:
+                        print(i)
                     # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
                     self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
                     # print('Linear FTR from Chi(k) composition has been calculated')
@@ -892,6 +895,7 @@ class FTR_gulp_to_feff_A_model_base():
                         self.suptitle_fontsize = 14
                         self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
                         self.suptitle_fontsize = 18
+                        self.minimum.indicator_minimum_from_FTRlinear_chi = True
                         self.minimum.model_A = copy.deepcopy(current_model_A)
                         self.minimum.model_B = copy.deepcopy(current_model_B)
                         self.minimum.setOfSnapshotSpectra = copy.deepcopy(self.setOfSnapshotSpectra)
@@ -1238,8 +1242,8 @@ class FTR_gulp_to_feff_A_model_base():
         result_dict = {}
 
         for filePath in self.listOfSnapshotFiles:
-            print('==> file is: {0}'.format(filePath))
-            print('==> Number is: {0}'.format(number))
+            # print('==> file is: {0}'.format(filePath))
+            # print('==> Number is: {0}'.format(number))
 
             currentSerialSnapNumber = currentSerialSnapNumber + 1
 
@@ -1277,17 +1281,20 @@ class FTR_gulp_to_feff_A_model_base():
             # self.currentValues.number = number
             # self.currentValues.snapshotName = os.path.basename(filePath)
             # # self.table.addRecord(self.currentValues)
-            if R_tot < self.minimum.Rtot:
-                # check single spectrum for best fit:
-                self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                # model B:
-                self.theory_one.pathToLoadDataFile = self.theory_one.pathToLoadDataFile
-                self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
-                self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
-                self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
-                self.theory_one.loadSpectrumData()
-                self.updateInfo()
-                self.updatePlot()
+
+            # ==========================================================================
+            # do not need spectra from single atom in multiatoms structure:
+            # if R_tot < self.minimum.Rtot:
+            #     # check single spectrum for best fit:
+            #     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+            #     # model B:
+            #     self.theory_one.pathToLoadDataFile = self.theory_one.pathToLoadDataFile
+            #     self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
+            #     self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
+            #     self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+            #     self.theory_one.loadSpectrumData()
+            #     self.updateInfo()
+            #     self.updatePlot()
 
             if currentSerialSnapNumber == self.numberOfSerialEquivalentAtoms:
 
@@ -1311,6 +1318,9 @@ class FTR_gulp_to_feff_A_model_base():
                 if R_tot < self.minimum.Rtot:
                     # check single model simple composition for best fit:
                     self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                    self.minimum.snapshotName = modelName + ': ' \
+                                        + self.setOfSnapshotSpectra.getInfo_SimpleComposition()\
+                                        + ', simple snapshots composition'
                     self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
                                            modelName + ', simple snapshots composition,  $R_{{tot}}$  = {0}'.format(
                         round(self.minimum.Rtot, 4))

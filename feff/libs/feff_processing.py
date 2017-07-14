@@ -488,7 +488,7 @@ if __name__=='__main__':
     a = SimpleSpectrum()
     a.k_vector = k
     a.chi_vector = chi
-    a.user = 'PK_test'
+    a.user = 'ID'
     a.calcFTRtransform()
     a.updateInfo()
     obj.addSpectraToDict(a)

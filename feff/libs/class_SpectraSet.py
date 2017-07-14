@@ -168,9 +168,15 @@ class SpectraSet():
         # calc the minimum of Rfactros minimum R_chi+R_ftr
         num = len(self.dictOfSpectra)
         x0 = np.zeros(num)
+        if num == 2:
+            x0[0]=0
+            x0[1]=1
+
         def func(x):
             # print(x)
-            self.result_FTR_from_linear_Chi_k.chi_vector, self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+            self.result_FTR_from_linear_Chi_k.chi_vector, \
+            self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+
             self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
                                                            * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
             R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
@@ -183,7 +189,8 @@ class SpectraSet():
 
         # res_tmp = func(x0)
         if method == 'minimize':
-            res = minimize(func, x0=x0, bounds=bounds, options={'gtol': 1e-6, 'disp': False})
+            res = minimize(func, x0=x0, bounds=bounds, method='nelder-mead',
+                           options={'xtol': 1e-8, 'disp': False})
         elif method == 'differential_evolution':
             res = differential_evolution(func, bounds)
 
@@ -276,6 +283,15 @@ class SpectraSet():
                 txt = txt + ' + '
         self.result_simple.label_latex = txt
         self.result_simple.label = txt.replace(':', '_').replace(' ', '_')
+    def getInfo_SimpleComposition(self):
+        txt = ''
+        num = len(self.dictOfSpectra)
+        for i in self.dictOfSpectra:
+            val = self.dictOfSpectra[i]
+            txt = txt + '{0}x'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
+            if i < num-1:
+                txt = txt + ' + '
+        return txt
 
     def updateInfo_LinearComposition(self):
         R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition()
@@ -420,14 +436,14 @@ class SpectraSet():
         np.savetxt(os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__ftr(r).txt'), out_array, fmt='%1.6e',
                    delimiter='\t', header=headerTxt)
         txt_out = os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__ftr(r).txt')
-        print(f'=========== file: {txt_out} has been saved')
+        # print(f'=========== file: {txt_out} has been saved')
 
         headerTxt = txt + '\n' + headerTxt_chi
         out_array = out_array_chi
         np.savetxt(os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__chi(k).txt'), out_array, fmt='%1.6e',
                    delimiter='\t', header=headerTxt)
         txt_out = os.path.join(output_dir, f'{self.result_FTR_from_linear_Chi_k.label}__chi(k).txt')
-        print(f'=========== file: {txt_out} has been saved')
+        # print(f'=========== file: {txt_out} has been saved')
 
     def saveSpectra_LinearComposition(self, output_dir=''):
         # save Spectra to ASCII column file:
@@ -532,14 +548,14 @@ class SpectraSet():
         np.savetxt(os.path.join(output_dir, f'{self.result_simple.label}__ftr(r).txt'), out_array, fmt='%1.6e',
                    delimiter='\t', header=headerTxt)
         txt_out = os.path.join(output_dir, f'{self.result_simple.label}__ftr(r).txt')
-        print(f'=========== file: {txt_out} has been saved')
+        # print(f'=========== file: {txt_out} has been saved')
 
         headerTxt = txt + '\n' + headerTxt_chi
         out_array = out_array_chi
         np.savetxt(os.path.join(output_dir, f'{self.result_simple.label}__chi(k).txt'), out_array, fmt='%1.6e',
                    delimiter='\t', header=headerTxt)
         txt_out = os.path.join(output_dir, f'{self.result_simple.label}__chi(k).txt')
-        print(f'=========== file: {txt_out} has been saved')
+        # print(f'=========== file: {txt_out} has been saved')
 
 
 

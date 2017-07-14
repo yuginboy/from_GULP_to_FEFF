@@ -5,6 +5,7 @@
 * Last modified: 2017-02-09
 '''
 import numpy as np
+
 def approx_jacobian(x,func,epsilon=1e-3,*args):
     """Approximate the Jacobian matrix of callable function func
 
@@ -105,6 +106,7 @@ def approx_hessian1d_diag(x, func, epsilon=1e-3, emin=1e-12, *args):
         dx[i] = 0.0
     return hes
 
+
 def approx_errors(func, x0, epsilon=1e-8):
     '''
 
@@ -119,7 +121,7 @@ def approx_errors(func, x0, epsilon=1e-8):
     # This is exactly what most optimization algorithms like optim in R return: the Hessian evaluated at the MLE.
     hess = approx_hessian1d_diag(x0, func, epsilon=epsilon)
     se = np.zeros(np.size(x0))
-    se = 1/np.sqrt(abs(np.diag(hess)))
+    se =  1 / np.sqrt(abs(np.diag(hess)))
     # change inf number
     se[np.isinf(se)] = 0
     se[np.isneginf(se)] = 0

@@ -117,18 +117,21 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         minIdx, = np.where(vec_Rtot == np.min(vec_Rtot))
         Rtot = result[minIdx[0]].Rtot
         snapshotName = result[minIdx[0]].snapshotName
+        obj = result[minIdx[0]]
+
 
         # save ASCII column data:
         if self.saveDataToDisk:
             self.outMinValsDir = outDirectoryForTowModelsFitResults
-            obj = result[minIdx[0]]
-            obj.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
-                output_dir=self.outMinValsDir)
+            if obj.indicator_minimum_from_FTRlinear_chi:
+            # if minimum have been found in FTRlinear_chi procedure:
+                obj.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                    output_dir=self.outMinValsDir)
 
-            # store model-A snapshots for this minimum case:
-            obj.model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
-            # store model-B snapshots for this minimum case:
-            obj.model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                # store model-A snapshots for this minimum case:
+                obj.model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                # store model-B snapshots for this minimum case:
+                obj.model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
             dst = os.path.join(self.outMinValsDir, os.path.basename(obj.pathToImage))
             copyfile(obj.pathToImage, dst)
 
@@ -140,9 +143,6 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         runtime = timer() - start
         print('======'*10)
         print("total runtime is {0:f} seconds".format(runtime))
-        print('======'*10)
-        print('======'*10)
-        print('======'*10)
 
 
 if __name__ == '__main__':
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 5
+    a.parallel_job_numbers = 1
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFromTwoModels_parallel()
