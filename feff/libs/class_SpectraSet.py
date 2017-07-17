@@ -167,10 +167,16 @@ class SpectraSet():
     def calcLinearSpectraComposition_FTR_from_linear_Chi_k(self, method='minimize'):
         # calc the minimum of Rfactros minimum R_chi+R_ftr
         num = len(self.dictOfSpectra)
-        x0 = np.zeros(num)
-        if num == 2:
-            x0[0]=0
-            x0[1]=1
+        x0 = np.zeros(num)+0.5
+        # if num == 2:
+        #     x0[0]=1
+        #     x0[1]=0
+
+        # for debug:
+        # plt.figure()
+        # plt.plot(self.dictOfSpectra[0]['data'].plotTwoSpectrum_FTR_r())
+        # plt.plot(self.dictOfSpectra[1]['data'].plotTwoSpectrum_FTR_r())
+        # plt.show()
 
         def func(x):
             # print(x)
@@ -189,8 +195,10 @@ class SpectraSet():
 
         # res_tmp = func(x0)
         if method == 'minimize':
-            res = minimize(func, x0=x0, bounds=bounds, method='nelder-mead',
-                           options={'xtol': 1e-8, 'disp': False})
+            # res = minimize(func, x0=x0, bounds=bounds, method='nelder-mead',
+            #                options={'xtol': 1e-8, 'disp': False})
+            res = minimize(func, x0=x0, bounds=bounds, method='TNC',
+                           options={'gtol': 1e-8, 'disp': False})
         elif method == 'differential_evolution':
             res = differential_evolution(func, bounds)
 
@@ -207,7 +215,18 @@ class SpectraSet():
 
         tmp_chi_vector, tmp_ftr_vector = self.func_FTR_from_linear_Chi_k(self.coefficient_vector_FTR_from_linear_Chi_k)
         self.result_FTR_from_linear_Chi_k.chi_vector = tmp_chi_vector
-        self.result_FTR_from_linear_Chi_k.ftr_vector = tmp_ftr_vector * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+        self.result_FTR_from_linear_Chi_k.ftr_vector = tmp_ftr_vector * \
+                                                       self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+
+        # for debug:
+        # self.coefficient_vector_FTR_from_linear_Chi_k = [1, 0]
+        # tmp_chi_vector, tmp_ftr_vector = self.func_FTR_from_linear_Chi_k(self.coefficient_vector_FTR_from_linear_Chi_k)
+        # self.result_FTR_from_linear_Chi_k.chi_vector = tmp_chi_vector
+        # self.result_FTR_from_linear_Chi_k.ftr_vector = tmp_ftr_vector * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+        # plt.figure()
+        # self.plotSpectra_FTR_r_LinearComposition_FTR_from_linear_Chi_k()
+        # plt.figure()
+        # self.plotSpectra_chi_k_LinearComposition_FTR_from_linear_Chi_k()
 
         # estimate the errors of the coefficients:
         s2 = self.result_FTR_from_linear_Chi_k.get_FTR_sigma_squared()
@@ -363,8 +382,18 @@ class SpectraSet():
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
             val['data'].plotOneSpectrum_FTR_r()
+
+        txt_coeff = '['
+        txt_sep = ' ,'
+        for idx, k in enumerate(self.coefficient_vector_FTR_from_linear_Chi_k):
+            if idx == len(self.coefficient_vector_FTR_from_linear_Chi_k):
+                txt_sep = ''
+            txt_coeff = txt_coeff + '{}'.format(round(k,4)) + txt_sep
+        txt_coeff = txt_coeff + ']'
+
         self.result_FTR_from_linear_Chi_k.plotTwoSpectrum_FTR_r()
-        plt.title('$R_{{FT(r)\leftarrow\chi(k)}}$  = {0}'.format(round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[1], 4)))
+        plt.title('$R_{{FT(r)\leftarrow\chi(k)}}$  = {0}, k = {1}'.format(
+            round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[1], 4), txt_coeff))
         plt.legend()
         plt.show()
 
@@ -381,8 +410,18 @@ class SpectraSet():
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
             val['data'].plotOneSpectrum_chi_k()
+
+        txt_coeff = '['
+        txt_sep = ' ,'
+        for idx, k in enumerate(self.coefficient_vector_FTR_from_linear_Chi_k):
+            if idx == len(self.coefficient_vector_FTR_from_linear_Chi_k):
+                txt_sep = ''
+            txt_coeff = txt_coeff + '{}'.format(round(k, 4)) + txt_sep
+        txt_coeff = txt_coeff + ']'
+
         self.result_FTR_from_linear_Chi_k.plotTwoSpectrum_chi_k()
-        plt.title('$R_{{\chi(k)}}$ = {0}'.format(round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[2], 4)))
+        plt.title('$R_{{\chi(k)}}$ = {0}, k = {1}'.format(
+            round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[2], 4), txt_coeff))
         plt.legend()
         plt.show()
 

@@ -106,11 +106,26 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
                                    saveDataToDisk=self.saveDataToDisk)
 
         start = timer()
-        p = mp.Pool(self.parallel_job_numbers)
+
         number = self.model_A.numberOfSerialEquivalentAtoms
         listOfIndexes = slice_list(model_A_listOfSnapshotFiles, size=self.parallel_job_numbers, whole_num=number)
-        # print(listOfIndexes)
+        print('*----'*10)
+        print('User calls {} number of threads'.format(self.parallel_job_numbers))
+        print('program define {} number of threads'.format(len(listOfIndexes)))
+        for idx, elem in enumerate(listOfIndexes):
+            print('Thread # {0} will be calculate {1} elements'.format(idx, len(elem)))
+
+        print('*----' * 10)
+
+        # # for debug
+        # for lst in listOfIndexes:
+        #     result = func(lst)
+
+
+        # p = mp.Pool(self.parallel_job_numbers)
+        p = mp.Pool(len(listOfIndexes))
         result = p.map(func, listOfIndexes)
+
         # bar.update(i)
         # bar.finish()
         vec_Rtot = list((i.Rtot for i in result))
@@ -168,7 +183,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 1
+    a.parallel_job_numbers = 10
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFromTwoModels_parallel()

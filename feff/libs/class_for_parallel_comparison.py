@@ -866,15 +866,17 @@ class FTR_gulp_to_feff_A_model_base():
                 # we already did (applied scale factors) it in model_A and model_B:
                 self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = 1
                 self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = 1
-                self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = 1
+                # was some problem with a scaling, therefore we store
+                # result_FTR_from_linear_Chi_k.scale_theory_factor_FTR without changes:
+                # self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = 1
 
                 self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = 1
                 self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = 1
                 self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = 1
 
                 if self.do_FTR_from_linear_Chi_k_SpectraComposition:
-                    if i ==5:
-                        print(i)
+                    # if i == 4:
+                    #     print(i)
                     # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
                     self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
                     # print('Linear FTR from Chi(k) composition has been calculated')
@@ -1224,7 +1226,8 @@ class FTR_gulp_to_feff_A_model_base():
         print(model_A_modelName)
         model_B_modelName = os.path.split(os.path.split((model_B_projectWorkingFEFFoutDirectory))[0])[1]
         print(model_B_modelName)
-        maskTxt = '[{0}]__[{1}]'.format(model_A_modelName, model_B_modelName)
+        maskTxt = '[{0}]__[{1}]__{2}_({3})'.format(model_A_modelName, model_B_modelName,
+                                                 self.user, self.sample_preparation_mode)
         outDirectoryForTowModelsFitResults = create_out_data_folder(dir_path, maskTxt)
 
         return model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
