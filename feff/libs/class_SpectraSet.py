@@ -386,7 +386,7 @@ class SpectraSet():
         txt_coeff = '['
         txt_sep = ' ,'
         for idx, k in enumerate(self.coefficient_vector_FTR_from_linear_Chi_k):
-            if idx == len(self.coefficient_vector_FTR_from_linear_Chi_k):
+            if idx == (len(self.coefficient_vector_FTR_from_linear_Chi_k) - 1):
                 txt_sep = ''
             txt_coeff = txt_coeff + '{}'.format(round(k,4)) + txt_sep
         txt_coeff = txt_coeff + ']'
@@ -414,7 +414,7 @@ class SpectraSet():
         txt_coeff = '['
         txt_sep = ' ,'
         for idx, k in enumerate(self.coefficient_vector_FTR_from_linear_Chi_k):
-            if idx == len(self.coefficient_vector_FTR_from_linear_Chi_k):
+            if idx == (len(self.coefficient_vector_FTR_from_linear_Chi_k) - 1):
                 txt_sep = ''
             txt_coeff = txt_coeff + '{}'.format(round(k, 4)) + txt_sep
         txt_coeff = txt_coeff + ']'

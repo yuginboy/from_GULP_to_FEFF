@@ -176,7 +176,7 @@ if __name__ == '__main__':
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
     # change tha sample preparation method:
-    a.sample_preparation_mode = 'AG'
+    a.sample_preparation_mode = '450'
     # if you want compare with the theoretical average, do this:
     # a.calcAllSnapshotFiles()
 
