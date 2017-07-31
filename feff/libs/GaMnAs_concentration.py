@@ -12,16 +12,11 @@ from scipy.interpolate import Rbf, InterpolatedUnivariateSpline, splrep, splev, 
 import re
 from shutil import copyfile
 from libs.dir_and_file_operations import listOfFilesFN, listOfFiles, listOfFilesFN_with_selected_ext
-from libs.numpy_group_by_ep_second_draft import group_by
+from feff.libs.numpy_group_by_ep_second_draft import group_by
 from scipy.signal import savgol_filter
-from libs.fit_current_curve import return_fit_param, func, f_PM, f_diff_PM_for_2_T, \
+from feff.libs.fit_current_curve import return_fit_param, func, f_PM, f_diff_PM_for_2_T, \
     linearFunc, f_PM_with_T, f_SPM_with_T
 from scipy.optimize import curve_fit, leastsq
-
-from PyQt4 import QtGui
-import xml.etree.ElementTree as ET
-import xml.dom.minidom as minidom
-
 
 g_J_Mn2_plus = 5.82
 g_J_Mn3_plus = 4.82
@@ -753,8 +748,9 @@ class ConcentrationOfMagneticIons:
         pylab.ion()  # Force interactive
         plt.close('all')
         ### for 'Qt4Agg' backend maximize figure
-        plt.switch_backend('QT4Agg')
+        plt.switch_backend('QT5Agg')
 
+        plt.rc('font', family='serif')
         self.fig = plt.figure()
         # gs1 = gridspec.GridSpec(1, 2)
         # fig.show()
@@ -793,80 +789,37 @@ class ConcentrationOfMagneticIons:
         # out_file_name = '%s_' % (case) + "%05d.png" % (numOfIter)
         # fig.savefig(os.path.join(out_dir, out_file_name))
 
-class Example(QtGui.QMainWindow):
-
-    def __init__(self):
-        super(Example, self).__init__()
-
-        self.initUI()
-
-    def initUI(self):
-
-        self.textEdit = QtGui.QTextEdit()
-        self.setCentralWidget(self.textEdit)
-        self.statusBar()
-
-        openFile = QtGui.QAction(QtGui.QIcon('open.png'), 'Open', self)
-        openFile.setShortcut('Ctrl+O')
-        openFile.setStatusTip('Open new File')
-        openFile.triggered.connect(self.showDialog)
-
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(openFile)
-
-        self.setGeometry(300, 300, 350, 300)
-        self.setWindowTitle('File dialog')
-        self.show()
-
-    def showDialog(self):
-
-        fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file',
-                '/home')
-
-        f = open(fname, 'r')
-
-        with f:
-            data = f.read()
-            self.textEdit.setText(data)
 
 if __name__ =='__main__':
     print ('-> you run ',  __file__, ' file in a main mode' )
+    from feff.libs.class_StoreAndLoadVars import StoreAndLoadVars
+    import tkinter as tk
+    from tkinter import filedialog, messagebox
 
-    app = QtGui.QApplication(sys.argv)
+    # open GUI filedialog to select feff_0001 working directory:
+    A = StoreAndLoadVars()
+    A.fileNameOfStoredVars = 'GaMnAs_SQUID.pckl'
+    print('last used: {}'.format(A.getLastUsedDirPath()))
+    # openfile dialoge
+    root = tk.Tk()
+    root.withdraw()
 
-    root = ET.Element("root")
-    vars = ET.SubElement(root, "vars")
-
-    xmlConfigFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'vars.xml')
-    if os.path.isfile(xmlConfigFile):
-        xmlTree = ET.ElementTree(file=xmlConfigFile)
-        defDirPath = xmlTree.iter(tag='imgPath').__next__().text
-        if not os.path.isdir(defDirPath):
-            defDirPath = os.path.dirname(os.path.realpath(__file__))
-
-    else:
-        defDirPath = os.path.dirname(os.path.realpath(__file__))
-
-
-    dir_ = QtGui.QFileDialog.getExistingDirectory(None, 'Select a folder:', defDirPath,
-                                                  QtGui.QFileDialog.ShowDirsOnly)
-
-    if dir_ == '':
-        # sys.exit(app.exec_())
-        sys.exit(0)
-    else:
-        ET.SubElement(vars, "imgPath", name="pathForImages").text = dir_
-        tree = ET.ElementTree(root)
-        tree.write(xmlConfigFile)
+    # load A-model data:
+    txt_info = "select the SQUID measurements\noutput data files for B180 sample"
+    messagebox.showinfo("info", txt_info)
+    dir_path = filedialog.askdirectory(initialdir=A.getLastUsedDirPath())
+    if os.path.isdir(dir_path):
+        A.lastUsedDirPath = dir_path
+        A.saveLastUsedDirPath()
 
     # check is the 'calc' folder exist:
-    out_dir = os.path.join(dir_, 'calc')
+    out_dir = os.path.join(dir_path, 'calc')
+    print('out dir path is: {}'.format(out_dir))
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
     a = ConcentrationOfMagneticIons()
-    a.selectCase = 'B180v'
+    a.selectCase = 'B180c'
 
     # check is 'a.selectCase' sub-folder exist:
     out_dir = os.path.join(out_dir, a.selectCase)

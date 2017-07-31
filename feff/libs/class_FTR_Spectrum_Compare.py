@@ -183,7 +183,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 10
+    a.parallel_job_numbers = 5
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFromTwoModels_parallel()
