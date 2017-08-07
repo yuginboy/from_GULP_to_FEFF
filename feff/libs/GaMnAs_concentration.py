@@ -261,7 +261,8 @@ class ConcentrationOfMagneticIons:
         self.mass_kg = 0.0
         self.magnetic_moment_saturation_experiment = 0.0
         self.how_many_Mn_in_percent = 2.3 #[%]
-        self.dataFolderSorce = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)/B180v[s]m(H)-dia/'
+        self.dataFolderSorceBase = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)'
+        self.dataFolderSorce = 'B180v[s]m(H)-dia'
 
         # We suppose that the weight measurements has more accuracy then spatial measurements in the typical lab conditions.
         # There for we calculate Area size for each sample from the density of pure GaAs and from the information about
@@ -306,7 +307,7 @@ class ConcentrationOfMagneticIons:
             self.Hmin = -6#[T]
             self.Hmax = 8 #[T]
 
-            self.dataFolderSorce = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)/B180v[s]m(H)-dia/'
+            self.dataFolderSorce = os.path.join(self.dataFolderSorceBase, 'B180v[s]m(H)-dia')
 
         if self.selectCase == 'B180c':
             self.mass_kg = m_B180c/1e6 #[kg]
@@ -316,13 +317,13 @@ class ConcentrationOfMagneticIons:
             self.Hmin = -6#[T]
             self.Hmax = 6 #[T]
 
-            self.dataFolderSorce = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)/B180c[s]m(H)-dia/'
+            self.dataFolderSorce = os.path.join(self.dataFolderSorceBase, 'B180c[s]m(H)-dia')
 
         if self.selectCase == 'B180b':
             self.mass_kg = m_B180b/1e6 #[kg]
             self.magnetic_moment_saturation_experiment = 5150e-8 # emu
             self.filmArea = 8.3036995e-6 #[m^2]
-            self.dataFolderSorce = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)/B180b[s]m(H)-dia/'
+            self.dataFolderSorce = os.path.join(self.dataFolderSorceBase, 'B180b[s]m(H)-dia')
 
             self.Hmin = -6#[T]
             self.Hmax = 6 #[T]
@@ -332,7 +333,7 @@ class ConcentrationOfMagneticIons:
             self.mass_kg = m_B180a/1e6 #[kg]
             self.magnetic_moment_saturation_experiment = 2300e-8 # emu
             self.filmArea = 10.111943e-6 #[m^2]
-            self.dataFolderSorce = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)/B180a[s]m(H)-dia/'
+            self.dataFolderSorce = os.path.join(self.dataFolderSorceBase, 'B180a[s]m(H)-dia')
 
             self.Hmin = -6#[T]
             self.Hmax = 6 #[T]
@@ -805,7 +806,7 @@ if __name__ =='__main__':
     root.withdraw()
 
     # load A-model data:
-    txt_info = "select the SQUID measurements\noutput data files for B180 sample"
+    txt_info = "select the SQUID measurements\noutput data files for B180 sample\ndefault: Origin_Sawicki_measur_(B180)"
     messagebox.showinfo("info", txt_info)
     dir_path = filedialog.askdirectory(initialdir=A.getLastUsedDirPath())
     if os.path.isdir(dir_path):
@@ -818,8 +819,10 @@ if __name__ =='__main__':
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
+    # Change the Case Name for calculation: [B180a, B180b, B180c, B180v]
     a = ConcentrationOfMagneticIons()
-    a.selectCase = 'B180c'
+    a.dataFolderSorceBase = dir_path
+    a.selectCase = 'B180b'
 
     # check is 'a.selectCase' sub-folder exist:
     out_dir = os.path.join(out_dir, a.selectCase)
