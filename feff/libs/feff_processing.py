@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+
+import timeit
 import numpy as np
 from numpy import (pi, arange, zeros, ones, sin, cos,
                    exp, log, sqrt, where, interp, linspace)
+import numba
 from scipy.fftpack import fft, ifft
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -11,6 +14,8 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 from feff.libs.dir_and_file_operations import get_folder_name, runningScriptDir
+from feff.libs.feff_processing_numba import xftf as xftf_numba
+
 plt.rcParams.update({'font.size': 14})
 WindowName = 'kaiser'
 
@@ -296,30 +301,35 @@ def fourierTransform(filePath =
     # plt.draw()
     plt.show()
 
-def ftwindow(n,  user='PK'):
+
+def ftwindow_main(n,  user=1):
     k_wind = np.zeros(len(n))
     dx = 1
 
     kmin = 3.9
     kmax = 12
-    windname = WindowName
+    windname = 'hanning'
 
-    if user == 'PK':
+    if user == 1:
+        #'PK'
         windname = 'kaiser'
         kmin = 3.9
         kmax = 12
         dx = 1
-    elif user == 'PK_test':
+    elif user == 2:
+        #'PK_test'
         windname = 'kaiser'
         kmin = 3.9
         kmax = 12
         dx = 3
-    elif user == 'ID_test':
+    elif user == 3:
+        #'ID_test'
         windname = 'hanning'
         kmin = 3.9
         kmax = 12
         dx = 3
-    elif user == 'ID':
+    elif user == 4:
+        #'ID':
         windname = 'hanning'
         kmin = 3.5
         kmax = 11.5
@@ -365,6 +375,91 @@ def ftwindow(n,  user='PK'):
     k_wind[kmin_ind1 - win_shift:kmax_ind1 + win_shift] = max(init_window)
 
     return k_wind
+
+def ftwindow(n,  user='PK'):
+
+    i = 1
+    if user == 'PK':
+        i = 1
+    elif user == 'PK_test':
+        i = 2
+    elif user == 'ID_test':
+        i = 3
+    elif user == 'ID':
+        i = 4
+
+    k_wind = ftwindow_main(n,  user=i)
+
+    return k_wind
+# def ftwindow(n,  user='PK'):
+#     k_wind = np.zeros(len(n))
+#     dx = 1
+#
+#     kmin = 3.9
+#     kmax = 12
+#     windname = WindowName
+#
+#     if user == 'PK':
+#         windname = 'kaiser'
+#         kmin = 3.9
+#         kmax = 12
+#         dx = 1
+#     elif user == 'PK_test':
+#         windname = 'kaiser'
+#         kmin = 3.9
+#         kmax = 12
+#         dx = 3
+#     elif user == 'ID_test':
+#         windname = 'hanning'
+#         kmin = 3.9
+#         kmax = 12
+#         dx = 3
+#     elif user == 'ID':
+#         windname = 'hanning'
+#         kmin = 3.5
+#         kmax = 11.5
+#         dx = 2
+#     eps = 0.01
+#
+#     # kmin_ind = np.where(n == kmin)[0][0]
+#     # kmin_ind1 = np.where(n == kmin + dx)[0][0]
+#     # kmax_ind = np.where(n == kmax)[0][0]
+#     # kmax_ind1 = np.where(n == kmax - dx)[0][0]
+#
+#     kmin_ind = np.where(np.abs(n - kmin) < eps)[0][0]
+#     kmin_ind1 = np.where(np.abs(n - (kmin + dx)) < eps)[0][0]
+#     kmax_ind = np.where(np.abs(n - kmax) < eps)[0][0]
+#     kmax_ind1 = np.where(np.abs(n - (kmax - dx)) < eps)[0][0]
+#
+#
+#
+#     wind_point = len(n[kmin_ind:kmin_ind1 + 1])
+#     if windname == 'kaiser':
+#         init_window = np.kaiser(2 * wind_point, 3)
+#     elif windname == 'hanning':
+#         init_window = np.hanning(2 * wind_point)
+#     elif windname == 'blackman':
+#         init_window = np.blackman(2 * wind_point)
+#     elif windname == 'hamming':
+#         init_window = np.hamming(2 * wind_point)
+#     elif windname == 'chebwin':
+#         init_window = signal.chebwin(2 * wind_point, at=100)
+#     elif windname == 'bartlett':
+#         init_window = np.bartlett(2 * wind_point)
+#
+#     max1 = np.where(init_window == max(init_window))[0][0]
+#     max2 = np.where(init_window == max(init_window))[0][1]
+#
+#     dx1 = [init_window[0:max2]][0]
+#     dx2 = [init_window[max2:]][0]
+#
+#     win_shift = int(len(dx1) / 2)
+#
+#     k_wind[kmin_ind - win_shift:kmin_ind1 - win_shift + 1] = dx1
+#     k_wind[kmax_ind1 + win_shift:kmax_ind + win_shift + 1] = dx2
+#     k_wind[kmin_ind1 - win_shift:kmax_ind1 + win_shift] = max(init_window)
+#
+#     return k_wind
 # def ftwindow(x):
 #     """
 #     Kaiser-Bessel window function
@@ -410,6 +505,9 @@ def ftwindow(n,  user='PK'):
 
 # win = ftwindow(kex)
 
+@numba.vectorize([numba.float64(numba.complex128),numba.float32(numba.complex64)])
+def abs2(x):
+    return x.real**2 + x.imag**2
 
 def xftf(k, chi, user='PK'):
     rmax_out = 10
@@ -420,8 +518,9 @@ def xftf(k, chi, user='PK'):
     rstep = pi/(kstep*nfft)
     irmax = min(nfft/2, int(1.01 + rmax_out/rstep))
 
-    r   = rstep * arange(irmax)
-    mag = sqrt(out.real**2 + out.imag**2)
+    r   = rstep * np.arange(irmax)
+    # mag = np.sqrt(out.real**2 + out.imag**2)
+    mag = abs2(out)
     kwin =  win[:len(chi)]
     r    =  r[:irmax]
     chir =  out[:irmax]
@@ -429,6 +528,23 @@ def xftf(k, chi, user='PK'):
     chir_re  =  out.real[:irmax]
     chir_im  =  out.imag[:irmax]
     return r, chir, chir_mag, chir_re, chir_im
+
+def xftf_prep_numba(k, chi, kmax=20, kweight=1, dk=3):
+    """
+    calculate weighted chi(k) on uniform grid of len=nfft, and the
+    ft window.
+
+    Returns weighted chi, window function which can easily be multiplied
+    and used in xftf_fast.
+    """
+    kstep = np.round(1000.*(k[1]-k[0]))/1000.0
+    npts = int(1.01 + max(k)/kstep)
+    k_max = max(max(k), kmax+dk)
+    k_   = kstep * np.arange(int(1.01+k_max/kstep), dtype='float64')
+    chi_ = interp(k_, k, chi)
+
+    res_first = chi_[:npts] *k_[:npts]**kweight
+    return res_first, k_
 
 def xftf_prep(k, chi, user='PK'):
     """
@@ -453,25 +569,27 @@ def xftf_prep(k, chi, user='PK'):
     #     dk = 1
 
 
-    dk2 = dk
-    # nfft = 2048
-    # kstep = 0.05
+    # dk2 = dk
+    # # nfft = 2048
+    # # kstep = 0.05
     kstep = np.round(1000.*(k[1]-k[0]))/1000.0
-    npts = int(1.01 + max(k)/kstep)
-    k_max = max(max(k), kmax+dk2)
-    k_   = kstep * np.arange(int(1.01+k_max/kstep), dtype='float64')
-    chi_ = interp(k_, k, chi)
+    npts = int(1.01 + np.max(k)/kstep)
+    # k_max = max(max(k), kmax+dk2)
+    # k_   = kstep * np.arange(int(1.01+k_max/kstep), dtype='float64')
+    # chi_ = interp(k_, k, chi)
+
+    res1, k_ = xftf_prep_numba(k, chi, kmax=kmax, kweight=kweight, dk=dk)
     win  = ftwindow(np.asarray(np.asarray(k_)), user=user)
 
-    return ((chi_[:npts] *k_[:npts]**kweight), win[:npts])
-
+    return ((res1), win[:npts])
 
 
 def xftf_fast(chi, nfft=2048, kstep=0.05):
 
-    cchi = zeros(nfft, dtype='complex128')
+    cchi = np.zeros(nfft, dtype='complex128')
     cchi[0:len(chi)] = chi
-    return (kstep / sqrt(pi)) * fft(cchi)[:int(nfft/2)]
+    res_fft = np.fft.fft(cchi, nfft)
+    return (kstep / sqrt(pi)) * res_fft[:int(nfft/2)]
 
 if __name__=='__main__':
     # root = tk.Tk()
@@ -481,37 +599,57 @@ if __name__=='__main__':
     #
     # fourierTransform(filePath=file_path)
     k = np.arange(0.5, 15, 0.05)
-    chi = np.sin(7 * k) + np.sin(5 * k + np.pi * 0.3)
-    obj = CompareUserPresets()
+    chi = np.sin(5 * k + np.pi * 0.3)
 
+    print(timeit.timeit('xftf(k, chi, user=\'ID\')', number=10000, globals=globals()))
+    print(timeit.timeit('xftf_numba(k, chi, user=\'ID\')', number=10000, globals=globals()))
 
-    a = SimpleSpectrum()
-    a.k_vector = k
-    a.chi_vector = chi
-    a.user = 'ID'
-    a.calcFTRtransform()
-    a.updateInfo()
-    obj.addSpectraToDict(a)
-
-    # b = SimpleSpectrum()
-    # b.k_vector = k
-    # b.chi_vector = chi
-    # b.user = 'ID'
-    # b.calcFTRtransform()
-    # b.updateInfo()
-    # obj.addSpectraToDict(b)
-
-    c = SimpleSpectrum()
-    c.k_vector = k
-    c.chi_vector = chi
-    c.user = 'ID_test'
-    c.calcFTRtransform()
-    c.updateInfo()
-    obj.addSpectraToDict(c)
-
-    obj.setupAxes()
-    obj.updatePlot()
-    plt.show()
-
-
-
+    # chi = np.sin(7 * k) + np.sin(5 * k + np.pi * 0.3)
+    # obj = CompareUserPresets()
+    #
+    #
+    # a = SimpleSpectrum()
+    # a.k_vector = k
+    # a.chi_vector = chi
+    #
+    # a.user = 'ID'
+    # a.calcFTRtransform()
+    # a.updateInfo()
+    # a.label_latex = 'A=1'
+    # obj.addSpectraToDict(a)
+    #
+    # # b = SimpleSpectrum()
+    # # b.k_vector = k
+    # # b.chi_vector = chi
+    # # b.user = 'ID'
+    # # b.calcFTRtransform()
+    # # b.updateInfo()
+    # # obj.addSpectraToDict(b)
+    #
+    # c = SimpleSpectrum()
+    # c.k_vector = k
+    #
+    # c.chi_vector = chi*1.5
+    # c.user = 'ID'
+    # c.calcFTRtransform()
+    # c.updateInfo()
+    # c.label_latex = 'A=1.5'
+    # obj.addSpectraToDict(c)
+    #
+    # d = SimpleSpectrum()
+    # d.k_vector = k
+    #
+    # d.chi_vector = (1.2*np.sin(5 * k + np.pi * 0.6) + np.sin(5 * k + np.pi * 0.2))
+    # d.user = 'ID'
+    # d.calcFTRtransform()
+    # d.updateInfo()
+    # d.label_latex = 'A=1.2, $\phi=0.6,0.2$'
+    # obj.addSpectraToDict(d)
+    #
+    # obj.setupAxes()
+    # obj.graph_title_txt = "Compare two spectra: sin(5k+pi/3) and 1.5sin(5k+pi/3)"
+    # obj.updatePlot()
+    # plt.show()
+    #
+    #
+    #

@@ -10,6 +10,7 @@ from feff.libs.load_chi_data_file import load_and_apply_xftf, load_chi_data
 from feff.libs.feff_processing import xftf
 import matplotlib.pyplot as plt
 import numpy as np
+import numba
 
 class BaseData():
     def __init__(self):
@@ -106,6 +107,26 @@ class GraphElement():
     # base graph elements class
     def __init__(self):
         self.axes = []
+
+@numba.jit('Tuple((f8[:], f8[:]))(f8[:], f8[:], f8[:])', cache=True)
+def numba_selectPointsInRegion(x, y, r_factor_region):
+    # select only the points (X,Y) in the region:
+    indexMin = (np.abs(x - r_factor_region[0])).argmin()
+    indexMax = (np.abs(x - r_factor_region[1])).argmin()
+    out_x = np.zeros(len(x[indexMin:indexMax]))
+    out_y = np.empty_like(out_x)
+    out_x = x[indexMin:indexMax]
+    out_y = y[indexMin:indexMax]
+    return out_x, out_y
+
+@numba.jit('f8(f8[:], f8[:])', cache=True)
+def get_R_factor_numba(y_ideal, y_probe):
+    # calc R-factor
+    # y_ideal - ideal curve
+    # y_probe - probing curve
+    A1 = np.power(np.abs(np.subtract(y_ideal, y_probe)), 2)
+    A2 = np.power(np.abs(y_ideal), 2)
+    return (np.sum(A1) / np.sum(A2))
 
 class Spectrum (object):
     # base spectrum class
@@ -220,10 +241,14 @@ class Spectrum (object):
 
     def selectPointsInRegion(self, x, y):
         # select only the points (X,Y) in the region:
-        indexMin = (np.abs(x - self.r_factor_region[0])).argmin()
-        indexMax = (np.abs(x - self.r_factor_region[1])).argmin()
-        out_x = x[indexMin:indexMax]
-        out_y = y[indexMin:indexMax]
+        # indexMin = (np.abs(x - self.r_factor_region[0])).argmin()
+        # indexMax = (np.abs(x - self.r_factor_region[1])).argmin()
+        # out_x = x[indexMin:indexMax]
+        # out_y = y[indexMin:indexMax]
+
+        # replace by numba.jit
+        out_x, out_y = numba_selectPointsInRegion(x, y, np.asarray(self.r_factor_region, dtype=float))
+
         return out_x, out_y
 
     def interpArraysToEqualLength(self, x1, y1, x2, y2):
@@ -249,9 +274,14 @@ class Spectrum (object):
         # calc R-factor
         # y_ideal - ideal curve
         # y_probe - probing curve
-        A1 = np.power(np.abs(y_ideal - y_probe), 2)
-        A2 = np.power(np.abs(y_ideal), 2)
-        return (np.sum(A1) / np.sum(A2))
+
+        # A1 = np.power(np.abs(np.subtract(y_ideal - y_probe)), 2)
+        # A2 = np.power(np.abs(y_ideal), 2)
+        # return (np.sum(A1) / np.sum(A2))
+
+        # replace by numba:
+        return get_R_factor_numba(np.asarray(y_ideal, dtype=float), np.asarray(y_probe, dtype=float))
+
 
     def get_FTR_R_factor(self):
         '''
@@ -276,6 +306,7 @@ class Spectrum (object):
         self.probe_curve_ftr = self.probe_curve_y
 
         return self.get_R_factor(y_ideal=y1_out, y_probe=y2_out)
+
     def get_FTR_sigma_squared(self):
         '''
         return unbiased sample variance of FTR [ft(r)] conversion
@@ -323,6 +354,7 @@ class Spectrum (object):
         self.probe_curve_k = self.probe_curve_x
         self.probe_curve_chi = self.probe_curve_y
         return self.get_R_factor(y_ideal=y1_out, y_probe=y2_out)
+
     def get_chi_sigma_squared(self):
         '''
         return unbiased sample variance of chi(k) conversion

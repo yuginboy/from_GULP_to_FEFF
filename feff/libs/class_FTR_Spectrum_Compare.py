@@ -39,6 +39,32 @@ def slice_list(input, size, whole_num=2):
     result = list(chunks (input, slice_size))
     return result
 
+def check_if_lengths_are_equal(input):
+    isEqual = True
+    L = len(input)
+    tmp = np.zeros(L)
+    for i in range(L):
+        tmp[i] = len(input[i])
+    for i in range(L-1):
+        if tmp[i] != tmp[i+1]:
+            isEqual = False
+            break
+    return isEqual
+
+def slice_list_extend(input, size, whole_num=2):
+    lst_tmp = slice_list(input, size, whole_num=whole_num)
+    out = lst_tmp
+    if not check_if_lengths_are_equal(lst_tmp):
+        tmp_input = input
+        reduce_num = 0
+        N = len(input)
+        while not check_if_lengths_are_equal(lst_tmp):
+            reduce_num = reduce_num + whole_num
+            lst_tmp = slice_list(input[0:N - reduce_num], size, whole_num=whole_num)
+        out = lst_tmp
+        out.append(input[N - reduce_num: N])
+    return out
+
 def one_thread_calculation(model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles,
         model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles,
         outDirectoryForTowModelsFitResults, weight_R_factor_FTR=1.0, weight_R_factor_chi=0.0,
@@ -162,6 +188,14 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
 
 if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
+    # inp = np.linspace(1,2500,2500)
+    # sz = 3
+    # Mn = 1
+    # res = slice_list(input=inp, size=sz, whole_num=Mn)
+    # tmp = check_if_lengths_are_equal(res)
+    # res2 = slice_list_extend(input=inp, size=sz, whole_num=Mn)
+    # print(res)
+
 
     # start global search of Two-model combination in Parallel mode:
     a = FTR_gulp_to_feff_A_model()
@@ -183,7 +217,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 5
+    a.parallel_job_numbers = 1
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFromTwoModels_parallel()

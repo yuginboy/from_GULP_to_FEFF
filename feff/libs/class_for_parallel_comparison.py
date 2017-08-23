@@ -1387,18 +1387,18 @@ if __name__ == '__main__':
     a.scale_theory_factor_FTR = 0.81
     a.scale_experiment_factor_FTR = 1.0
 
-    a.model_A.numberOfSerialEquivalentAtoms = 2
+    a.model_A.numberOfSerialEquivalentAtoms = 1
     a.model_B.numberOfSerialEquivalentAtoms = 2
 
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
     # change tha sample preparation method:
-    a.sample_preparation_mode = 'AG'
+    a.sample_preparation_mode = '450'
     # if you want compare with the theoretical average, do this:
     # a.calcAllSnapshotFiles()
 
     # for debug and profiling:
-    a.saveDataToDisk = False
+    a.saveDataToDisk = True
 
     #  if you want to find the minimum from the all snapshots do this:
     a.calcAllSnapshotFilesForTwoModels_temperature()
