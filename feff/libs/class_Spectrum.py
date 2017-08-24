@@ -128,6 +128,19 @@ def get_R_factor_numba(y_ideal, y_probe):
     A2 = np.power(np.abs(y_ideal), 2)
     return (np.sum(A1) / np.sum(A2))
 
+@numba.jit('f8(f8[:], f8[:])', cache=True)
+def get_R_factor_numba_v(y_ideal, y_probe):
+    # calc R-factor
+    # y_ideal - ideal curve
+    # y_probe - probing curve
+    N = np.size(y_ideal)
+    A1 = 0.0
+    A2 = 0.0
+    for i in range(N):
+        A1 += (y_ideal[i]-y_probe[i])**2
+        A2 += y_ideal[i]**2
+    return A1/A2
+
 class Spectrum (object):
     # base spectrum class
     def __init__(self):
@@ -280,7 +293,7 @@ class Spectrum (object):
         # return (np.sum(A1) / np.sum(A2))
 
         # replace by numba:
-        return get_R_factor_numba(np.asarray(y_ideal, dtype=float), np.asarray(y_probe, dtype=float))
+        return get_R_factor_numba_v(np.asarray(y_ideal, dtype=float), np.asarray(y_probe, dtype=float))
 
 
     def get_FTR_R_factor(self):

@@ -14,7 +14,6 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 from feff.libs.dir_and_file_operations import get_folder_name, runningScriptDir
-from feff.libs.feff_processing_numba import xftf as xftf_numba
 
 plt.rcParams.update({'font.size': 14})
 WindowName = 'kaiser'
@@ -507,7 +506,7 @@ def ftwindow(n,  user='PK'):
 
 @numba.vectorize([numba.float64(numba.complex128),numba.float32(numba.complex64)])
 def abs2(x):
-    return x.real**2 + x.imag**2
+    return np.sqrt(x.real**2 + x.imag**2)
 
 def xftf(k, chi, user='PK'):
     rmax_out = 10

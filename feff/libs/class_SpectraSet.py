@@ -198,7 +198,7 @@ class SpectraSet():
             # res = minimize(func, x0=x0, bounds=bounds, method='nelder-mead',
             #                options={'xtol': 1e-8, 'disp': False})
             res = minimize(func, x0=x0, bounds=bounds, method='TNC',
-                           options={'gtol': 1e-8, 'disp': False})
+                           options={'gtol': 1e-4, 'disp': False})
         elif method == 'differential_evolution':
             res = differential_evolution(func, bounds)
 
