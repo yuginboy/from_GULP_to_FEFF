@@ -102,9 +102,11 @@ class FTR_gulp_to_feff_A_model_base():
         self.numberOfSerialEquivalentAtoms = 2
 
         self.model_A = Model_for_spectra()
-        self.model_A.numberOfSerialEquivalentAtoms = 2
+        self.model_A.numberOfSerialEquivalentAtoms = 3
         self.model_B = Model_for_spectra()
-        self.model_B.numberOfSerialEquivalentAtoms = 3
+        self.model_B.numberOfSerialEquivalentAtoms = 1
+        self.model_C = Model_for_spectra()
+        self.model_C.numberOfSerialEquivalentAtoms = 2
 
         # user's parameters for xftf preparation ['PK'- Pavel Konstantinov, 'ID' - Iraida Demchenko]:
         self.user = 'PK'
@@ -156,8 +158,10 @@ class FTR_gulp_to_feff_A_model_base():
 
         self.model_A.theory = copy.deepcopy(self.theory_one)
         self.model_B.theory = copy.deepcopy(self.theory_one)
+        self.model_C.theory = copy.deepcopy(self.theory_one)
 
         self.outDirectoryForTowModelsFitResults = '/home/yugin/VirtualboxShare/GaMnO/out_fit_two_models'
+        self.outDirectoryFor_3_type_ModelsFitResults = '/home/yugin/VirtualboxShare/GaMnO/out_fit_3_models'
 
         # self.theory_one.loadSpectrumData()
 
@@ -770,7 +774,7 @@ class FTR_gulp_to_feff_A_model_base():
                                                                                              self.scale_theory_factor_FTR)
         self.table.writeToASCIIFile()
 
-    def findBestSnapshotsCombinationFromTwoModels(self):
+    def findBestSnapshotsCombinationFrom_2_type_Models(self):
         '''
         searching procedure of Two Models (A - first, B - second) linear model:
         k/n(A1 + A2 + .. + An) + (1-k)/m(B1 + B2 + .. + Bm)
@@ -934,6 +938,198 @@ class FTR_gulp_to_feff_A_model_base():
         #                                                                                      self.scale_theory_factor_FTR)
         # self.table.writeToASCIIFile()
 
+    def findBestSnapshotsCombinationFrom_3_type_Models(self):
+        '''
+        searching procedure of 3 type Models (A - first, B - second, C - third) linear model:
+        a/n(A1 + A2 + .. + An) + b/m(B1 + B2 + .. + Bm) + c/l(C1 + C2 + .. + Cl)
+        a/n + b/m + c/l = 1
+        :return: a/n,  b/m, c/l - coefficient which corresponds to concentration A,B,C phases in A-B-C compound
+        '''
+        if self.scale_theory_factor_FTR == 1:
+            mask_ss = ''
+        else:
+            mask_ss = '_So={0:1.3f}'.format(self.scale_theory_factor_FTR)
+
+        mask_ss = mask_ss + self.outMinValsDir_mask
+
+        if (self.weight_R_factor_FTR / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryFor_3_type_ModelsFitResults,
+                                                        first_part_of_folder_name=self.user + '_Rmin=Rchi' + mask_ss)
+        elif (self.weight_R_factor_chi / (self.weight_R_factor_FTR + self.weight_R_factor_chi)) < 0.001:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryFor_3_type_ModelsFitResults,
+                                                        first_part_of_folder_name=self.user + '_Rmin=Rftr' + mask_ss)
+        else:
+            self.outMinValsDir = create_out_data_folder(main_folder_path=self.outDirectoryFor_3_type_ModelsFitResults,
+                                                        first_part_of_folder_name=self.user + '_Rmin=Rtot' + mask_ss)
+        self.setupAxes()
+        number = 0
+
+        self.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.setOfSnapshotSpectra.set_ideal_curve_params()
+
+        self.model_A.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.model_A.setOfSnapshotSpectra.set_ideal_curve_params()
+        self.model_B.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.model_B.setOfSnapshotSpectra.set_ideal_curve_params()
+        self.model_C.setOfSnapshotSpectra.target = copy.deepcopy(self.experiment)
+        self.model_C.setOfSnapshotSpectra.set_ideal_curve_params()
+
+        # load all snapshots to the RAM
+        self.listOfSnapshotFiles = self.model_A.listOfSnapshotFiles
+        self.numberOfSerialEquivalentAtoms = self.model_A.numberOfSerialEquivalentAtoms
+        self.model_A.dictOfAllSnapshotsInDirectory = self.loadAllSpectraToDict()
+
+        self.listOfSnapshotFiles = self.model_B.listOfSnapshotFiles
+        self.numberOfSerialEquivalentAtoms = self.model_B.numberOfSerialEquivalentAtoms
+        self.model_B.dictOfAllSnapshotsInDirectory = self.loadAllSpectraToDict()
+
+        self.listOfSnapshotFiles = self.model_C.listOfSnapshotFiles
+        self.numberOfSerialEquivalentAtoms = self.model_C.numberOfSerialEquivalentAtoms
+        self.model_C.dictOfAllSnapshotsInDirectory = self.loadAllSpectraToDict()
+
+        currentSerialSnapNumber_modelA = 0
+
+        length = len(self.model_A.dictOfAllSnapshotsInDirectory) * len(self.model_B.dictOfAllSnapshotsInDirectory) * \
+                 len(self.model_C.dictOfAllSnapshotsInDirectory)
+
+        bar = progressbar.ProgressBar(maxval=length, \
+                                      widgets=[progressbar.Bar('=', '[', ']'), ' ',
+                                               progressbar.Percentage()])
+        i = 0
+        # self.minimum.Rtot = 1000
+        # self.minimum.Rchi = 1000
+        # self.minimum.Rftr = 1000
+        start = timer()
+        bar_index = 1
+        for i in self.model_A.dictOfAllSnapshotsInDirectory:
+            # model A
+            bar.update(bar_index)
+
+            val = self.model_A.dictOfAllSnapshotsInDirectory[i]
+            current_model_A = val['data']
+
+            # store current result of model-A simple composition:
+            currentSpectra_model_A_resultSimpleComposition = \
+                copy.deepcopy(current_model_A.result_simple)
+
+            # -----------------------------------------------------------------------------------------------------
+            # intrinsic loop for Model-B snapshots   --------------------------------------------------------------
+            for j in self.model_B.dictOfAllSnapshotsInDirectory:
+                # model B
+                val = self.model_B.dictOfAllSnapshotsInDirectory[j]
+                current_model_B = val['data']
+
+                # store current result of model-B simple composition:
+                currentSpectra_model_B_resultSimpleComposition = \
+                    copy.deepcopy(current_model_B.result_simple)
+
+                for k in self.model_C.dictOfAllSnapshotsInDirectory:
+                    # model C
+                    val = self.model_C.dictOfAllSnapshotsInDirectory[k]
+                    current_model_C = val['data']
+
+                    # store current result of model-C simple composition:
+                    currentSpectra_model_C_resultSimpleComposition = \
+                        copy.deepcopy(current_model_C.result_simple)
+
+
+                    # if model A-B-C were loaded then calc linear composition of two resulting spectra
+                    # from these two models:
+
+                    #     flush Dict of Set of TWO models results:
+                    self.setOfSnapshotSpectra.flushDictOfSpectra()
+                    currentSpectra_model_A_resultSimpleComposition.label = self.model_A.get_Model_name()
+                    self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_A_resultSimpleComposition)
+                    currentSpectra_model_B_resultSimpleComposition.label = self.model_B.get_Model_name()
+                    self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_B_resultSimpleComposition)
+                    currentSpectra_model_C_resultSimpleComposition.label = self.model_C.get_Model_name()
+                    self.setOfSnapshotSpectra.addSpectraToDict(currentSpectra_model_C_resultSimpleComposition)
+
+                    self.setOfSnapshotSpectra.weight_R_factor_chi = self.weight_R_factor_chi
+                    self.setOfSnapshotSpectra.weight_R_factor_FTR = self.weight_R_factor_FTR
+                    self.setOfSnapshotSpectra.result.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    self.setOfSnapshotSpectra.result_simple.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                    self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.label_latex_ideal_curve = \
+                        self.experiment.label_latex_ideal_curve
+
+                    # we already did (applied scale factors) it in models A, B, C:
+                    self.setOfSnapshotSpectra.result.scale_theory_factor_FTR = 1
+                    self.setOfSnapshotSpectra.result_simple.scale_theory_factor_FTR = 1
+                    # was some problem with a scaling, therefore we store
+                    # result_FTR_from_linear_Chi_k.scale_theory_factor_FTR without changes:
+                    # self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR = 1
+
+                    self.setOfSnapshotSpectra.result.scale_theory_factor_CHI = 1
+                    self.setOfSnapshotSpectra.result_simple.scale_theory_factor_CHI = 1
+                    self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k.scale_theory_factor_CHI = 1
+
+                    if self.do_FTR_from_linear_Chi_k_SpectraComposition:
+                        # if i == 4:
+                        #     print(i)
+                        # ----- Linear Composition _FTR_from_linear_Chi_k of Snapshots:
+                        self.setOfSnapshotSpectra.calcLinearSpectraComposition_FTR_from_linear_Chi_k()
+                        # print('Linear FTR from Chi(k) composition has been calculated')
+                        self.setOfSnapshotSpectra.updateInfo_LinearComposition_FTR_from_linear_Chi_k()
+                        R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+
+                        self.theory_one = copy.deepcopy(self.setOfSnapshotSpectra.result_FTR_from_linear_Chi_k)
+                        self.theory_one.label_latex_ideal_curve = self.experiment.label_latex_ideal_curve
+                        if R_tot < self.minimum.Rtot:
+                            self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                            modelNameTxt = self.setOfSnapshotSpectra.getInfo_LinearComposition_FTR_from_linear_Chi_k()
+                            self.minimum.snapshotName = modelNameTxt + '\n' + current_model_A.result_simple.label_latex + \
+                                                        '\n' + current_model_B.result_simple.label_latex + \
+                                                        '\n' + current_model_C.result_simple.label_latex
+                            self.graph_title_txt = 'model [$S_0^2$={0:1.3f}]: '.format(self.scale_theory_factor_FTR) + \
+                                                   modelNameTxt + \
+                                                   ',\nlinear $FT(r)\leftarrow\chi(k)$ snapshots composition,  $R_{{tot}}$  = {0}'.format(
+                                                       round(R_tot, 4))
+                            self.suptitle_fontsize = 14
+                            self.updatePlotOfSnapshotsComposition_Linear_FTR_from_linear_Chi_k()
+                            self.suptitle_fontsize = 18
+                            self.minimum.indicator_minimum_from_FTRlinear_chi = True
+                            self.minimum.model_A = copy.deepcopy(current_model_A)
+                            self.minimum.model_B = copy.deepcopy(current_model_B)
+                            self.minimum.model_C = copy.deepcopy(current_model_C)
+                            self.minimum.setOfSnapshotSpectra = copy.deepcopy(self.setOfSnapshotSpectra)
+                            # save ASCII column data:
+                            if self.saveDataToDisk:
+                                self.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
+                                    output_dir=self.outMinValsDir)
+
+                                # store model-A snapshots for this minimum case:
+                                current_model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                                # store model-B snapshots for this minimum case:
+                                current_model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                                # store model-C snapshots for this minimum case:
+                                current_model_C.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+
+                    # flush Dict of Set of TWO models results:
+                    self.setOfSnapshotSpectra.flushDictOfSpectra()
+                    bar_index += 1
+                    # #     flush Dict of Set of model-B Snapshots:
+                    # self.model_B.setOfSnapshotSpectra.flushDictOfSpectra()
+                    # #     flush Dict of Set of model-A Snapshots:
+                    # self.model_A.setOfSnapshotSpectra.flushDictOfSpectra()
+        print('Number of calculated cases: {}'.format(bar_index-1))
+        print('Total Number of cases: {}'.format(length))
+        bar.update(bar_index-1)
+        bar.finish()
+        print()
+        print('minimum Rtot = {}'.format(self.minimum.Rtot))
+        print('{}'.format(self.minimum.snapshotName))
+        runtime = timer() - start
+        print("runtime is {0:f} seconds".format(runtime))
+
+        # # store table to ASCII file:
+        # self.table.outDirPath = self.outMinValsDir
+        # timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
+        # # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        # modelName = self.model_A.get_Model_name() + '_and_' + self.model_B.get_Model_name()
+        # self.table.outFileName = modelName + timestamp + '_So={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
+        #                                                                                      self.scale_theory_factor_FTR)
+        # self.table.writeToASCIIFile()
+
     def calcSelectedSnapshotFile(self):
         '''
         calculate and plot graphs only for selected snapshot file
@@ -1060,7 +1256,7 @@ class FTR_gulp_to_feff_A_model_base():
         # start searching procedure:
         self.findBestSnapshotFromList()
 
-    def calcAllSnapshotFilesForTwoModels_temperature(self):
+    def calcAllSnapshotFilesFor_2_type_Models_single(self):
         '''
         main method to run searching procedure of minimum R-factor
         Combine with the linear coefficients of two models A and B
@@ -1068,7 +1264,7 @@ class FTR_gulp_to_feff_A_model_base():
         '''
         model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
         model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
-        outDirectoryForTowModelsFitResults = self.loadListOfFilesForTwoModels_temperature()
+        outDirectoryForTowModelsFitResults = self.loadListOfFilesFor_2_type_Models()
 
         # change the working directory path to selected one:
         self.model_A.projectWorkingFEFFoutDirectory = model_A_projectWorkingFEFFoutDirectory
@@ -1108,12 +1304,12 @@ class FTR_gulp_to_feff_A_model_base():
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
-        self.findBestSnapshotsCombinationFromTwoModels()
+        self.findBestSnapshotsCombinationFrom_2_type_Models()
 
-    def calcAllSnapshotFilesForTwoModels_temperature_parallel(self,
-        model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles,
-        model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles,
-        outDirectoryForTowModelsFitResults):
+    def calcAllSnapshotFilesFor_2_type_Models_parallel(self,
+                                                       model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles,
+                                                       model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles,
+                                                       outDirectoryForTowModelsFitResults):
         '''
         main method to run searching procedure of minimum R-factor
         Combine with the linear coefficients of two models A and B
@@ -1159,9 +1355,70 @@ class FTR_gulp_to_feff_A_model_base():
         # set experiment spectra:
         self.set_ideal_curve_params()
         # start searching procedure:
-        self.findBestSnapshotsCombinationFromTwoModels()
+        self.findBestSnapshotsCombinationFrom_2_type_Models()
 
-    def loadListOfFilesForTwoModels_temperature(self):
+    def calcAllSnapshotFilesFor_3_type_Models_parallel(self,
+        model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles,
+        model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles,
+        model_C_projectWorkingFEFFoutDirectory, model_C_listOfSnapshotFiles,
+        outDirectoryFor_3_type_ModelsFitResults):
+        '''
+        main method to run searching procedure of minimum R-factor
+        Combine with the linear coefficients of 3 models A, B and C
+        method to load sliced lists of files.
+        :return:
+        '''
+
+        # change the working directory path to selected one:
+        self.model_A.projectWorkingFEFFoutDirectory = model_A_projectWorkingFEFFoutDirectory
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.model_A.listOfSnapshotFiles = model_A_listOfSnapshotFiles
+        # ==============================================================================================================
+
+        # load B-model data:
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = model_B_projectWorkingFEFFoutDirectory
+        self.model_B.projectWorkingFEFFoutDirectory = model_B_projectWorkingFEFFoutDirectory
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.model_B.listOfSnapshotFiles = model_B_listOfSnapshotFiles
+        # ==============================================================================================================
+
+        # load C-model data:
+        # change the working directory path to selected one:
+        self.projectWorkingFEFFoutDirectory = model_C_projectWorkingFEFFoutDirectory
+        self.model_C.projectWorkingFEFFoutDirectory = model_C_projectWorkingFEFFoutDirectory
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        self.model_C.listOfSnapshotFiles = model_C_listOfSnapshotFiles
+        # ==============================================================================================================
+
+        # select outDirectoryForTowModelsFitResults:
+        self.outDirectoryFor_3_type_ModelsFitResults = outDirectoryFor_3_type_ModelsFitResults
+
+        if self.user == 'PK':
+            self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                              f'{self.sample_preparation_mode}.chik')
+        elif self.user == 'ID':
+            self.experiment.pathToLoadDataFile = os.path.join(get_folder_name(runningScriptDir), 'data',
+                                                              f'SM_{self.sample_preparation_mode}_av.chik')
+        # load experiment/ideal curve:
+        self.experiment.user = self.user
+        self.experiment.loadSpectrumData()
+        self.experiment.ftr_vector = self.experiment.ftr_vector * self.scale_experiment_factor_FTR
+        self.experiment.label_latex_ideal_curve = self.user + f': T={self.sample_preparation_mode}' + '$^{\circ}$'
+        self.outMinValsDir_mask = f'_T={self.sample_preparation_mode}_'
+        if self.sample_preparation_mode == 'AG':
+            self.experiment.label_latex_ideal_curve = self.user + ': as grown'
+            self.outMinValsDir_mask = '_as_grown_'
+
+        # set experiment spectra:
+        self.set_ideal_curve_params()
+        # start searching procedure:
+        self.findBestSnapshotsCombinationFrom_3_type_Models()
+
+    def loadListOfFilesFor_2_type_Models(self):
         '''
         load directories and lists of files for two models A-B
         :return:
@@ -1178,7 +1435,12 @@ class FTR_gulp_to_feff_A_model_base():
         root.withdraw()
 
         # load A-model data:
-        txt_info = "select the A-model FEFF-out folder\nN={} Mn atoms".format(
+        txt_info = "   select the A-model FEFF-out folder\n" \
+                   " -======================================-\n" \
+                   " -= This list of files will be divided =-\n" \
+                   " -=      by parallel job value         =-\n" \
+                   " -======================================-\n\n" \
+                   "      N={} Mn atoms".format(
             self.model_A.numberOfSerialEquivalentAtoms)
         messagebox.showinfo("info", txt_info)
         dir_path_model_A = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
@@ -1233,6 +1495,133 @@ class FTR_gulp_to_feff_A_model_base():
         return model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
                model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
                outDirectoryForTowModelsFitResults
+
+    def loadListOfFilesFor_3_type_Models(self):
+        '''
+        load directories and lists of files for two models A-B-C
+        :return:
+        '''
+        import tkinter as tk
+        from tkinter import filedialog, messagebox
+
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        a.fileNameOfStoredVars = 'model_3_a_vars.pckl'
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        # root.option_add('*Dialog.msg.width', 50)
+        root.option_add('*font', 'Helvetica -15')
+        root.withdraw()
+
+        # load A-model data:
+        txt_info = "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the A-model \n" \
+                   "        (top layer model !)\n" \
+                   "-=============================-\n" \
+                   "    This list of files will be divided\n" \
+                   "       by parallel job value\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n" \
+                   "          N={} Mn atoms".format(
+            self.model_A.numberOfSerialEquivalentAtoms)
+        messagebox.showinfo("info", txt_info)
+        dir_path_model_A = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path_model_A):
+            a.lastUsedDirPath = dir_path_model_A
+            a.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        model_A_projectWorkingFEFFoutDirectory = dir_path_model_A
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_A_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_A_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+
+        # load B-model data:
+        b = StoreAndLoadVars()
+        b.fileNameOfStoredVars = 'model_3_b_vars.pckl'
+        txt_info = "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the B-model \n" \
+                   "        (middle layer model !)\n" \
+                   "-=============================-\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n" \
+                   "          N={} Mn atoms".format(
+            self.model_B.numberOfSerialEquivalentAtoms)
+        messagebox.showinfo("info", txt_info)
+        dir_path = filedialog.askdirectory(initialdir=b.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            b.lastUsedDirPath = dir_path
+            b.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        model_B_projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_B_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_B_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+
+        # load C-model data:
+        c = StoreAndLoadVars()
+        c.fileNameOfStoredVars = 'model_3_c_vars.pckl'
+        txt_info = "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the C-model \n" \
+                   "        (down layer model !)\n" \
+                   "-=============================-\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n" \
+                   "          N={} Mn atoms".format(
+            self.model_C.numberOfSerialEquivalentAtoms)
+        messagebox.showinfo("info", txt_info)
+        dir_path = filedialog.askdirectory(initialdir=c.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            c.lastUsedDirPath = dir_path
+            c.saveLastUsedDirPath()
+
+        # change the working directory path to selected one:
+        model_C_projectWorkingFEFFoutDirectory = dir_path
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_C_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_C_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+        # select outDirectoryForThreeModelsFitResults:
+        out = StoreAndLoadVars()
+        out.fileNameOfStoredVars = 'outdir_3_vars.pckl'
+        txt_info = "select the directory to store the results\nof three A-B-C models fitting"
+        messagebox.showinfo("info", txt_info)
+        dir_path = filedialog.askdirectory(initialdir=out.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            out.lastUsedDirPath = dir_path
+            out.saveLastUsedDirPath()
+
+        model_A_modelName = os.path.split(os.path.split((model_A_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_A_modelName)
+        model_B_modelName = os.path.split(os.path.split((model_B_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_B_modelName)
+        model_C_modelName = os.path.split(os.path.split((model_C_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_C_modelName)
+        maskTxt = '[{0}]__[{1}]__{2}]__{3}_({4})'.format(model_A_modelName, model_B_modelName, model_C_modelName,
+                                                 self.user, self.sample_preparation_mode)
+        outDirectoryFor_3_type_ModelsFitResults = create_out_data_folder(dir_path, maskTxt)
+        print('outdata directory is:\n', outDirectoryFor_3_type_ModelsFitResults, '\n', '---'*15)
+
+        return model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
+               model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
+               model_C_projectWorkingFEFFoutDirectory, model_C_listOfSnapshotFiles, \
+               outDirectoryFor_3_type_ModelsFitResults
 
     def loadAllSpectraToDict(self):
         # load all snapshots and prepare data for the next calculations
@@ -1401,7 +1790,7 @@ if __name__ == '__main__':
     a.saveDataToDisk = True
 
     #  if you want to find the minimum from the all snapshots do this:
-    a.calcAllSnapshotFilesForTwoModels_temperature()
+    a.calcAllSnapshotFilesFor_2_type_Models_single()
     # if you want to check only one snapshot do this:
     # a.calcSelectedSnapshotFile()
 

@@ -1,9 +1,10 @@
-"""
+'''
 * Created by Zhenia Syryanyy (Yevgen Syryanyy)
 * e-mail: yuginboy@gmail.com
 * License: this code is in GPL license
-* Last modified: 2017-02-28
-"""
+* Last modified: 2017-08-24
+'''
+
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
 from feff.libs.class_for_parallel_comparison import Model_for_spectra, FTR_gulp_to_feff_A_model_base
 import os
@@ -11,16 +12,8 @@ import datetime
 from timeit import default_timer as timer
 import copy
 from shutil import copyfile
-from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
-    listOfFilesFN_with_selected_ext, create_out_data_folder, create_data_folder
-from feff.libs.class_StoreAndLoadVars import StoreAndLoadVars
-from feff.libs.class_SpectraSet import SpectraSet
-import matplotlib.pyplot as plt
-from matplotlib import pylab
-import matplotlib.gridspec as gridspec
 import numpy as np
 
-import progressbar
 # from joblib import Parallel, delayed
 import pathos.multiprocessing as mp
 
@@ -67,9 +60,12 @@ def slice_list_extend(input, size, whole_num=2):
 
 def one_thread_calculation(model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles,
         model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles,
-        outDirectoryForTowModelsFitResults, weight_R_factor_FTR=1.0, weight_R_factor_chi=0.0,
+        model_C_projectWorkingFEFFoutDirectory, model_C_listOfSnapshotFiles,
+        outDirectoryFor_3_type_ModelsFitResults, weight_R_factor_FTR=1.0, weight_R_factor_chi=0.0,
         scale_theory_factor_FTR=0.81, scale_experiment_factor_FTR=1.0,
-        model_A_numberOfSerialEquivalentAtoms=2, model_B_numberOfSerialEquivalentAtoms=2,
+        model_A_numberOfSerialEquivalentAtoms=2,
+        model_B_numberOfSerialEquivalentAtoms=2,
+        model_C_numberOfSerialEquivalentAtoms=2,
         user='ID', sample_preparation_mode='AG', saveDataToDisk=True):
     # create one thread of calculation by creating the object which will get to the input
     # sliced list of files of model_A
@@ -81,6 +77,7 @@ def one_thread_calculation(model_A_projectWorkingFEFFoutDirectory, model_A_listO
 
     a.model_A.numberOfSerialEquivalentAtoms = model_A_numberOfSerialEquivalentAtoms
     a.model_B.numberOfSerialEquivalentAtoms = model_B_numberOfSerialEquivalentAtoms
+    a.model_C.numberOfSerialEquivalentAtoms = model_C_numberOfSerialEquivalentAtoms
 
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = user
@@ -91,10 +88,11 @@ def one_thread_calculation(model_A_projectWorkingFEFFoutDirectory, model_A_listO
     a.saveDataToDisk = saveDataToDisk
 
     #  if you want to find the minimum from the all snapshots do this:
-    a.calcAllSnapshotFilesForTwoModels_temperature_parallel(
+    a.calcAllSnapshotFilesFor_3_type_Models_parallel(
         model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles,
         model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles,
-        outDirectoryForTowModelsFitResults)
+        model_C_projectWorkingFEFFoutDirectory, model_C_listOfSnapshotFiles,
+        outDirectoryFor_3_type_ModelsFitResults)
     return a.minimum
 
 
@@ -105,28 +103,32 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
 
     '''
 
-    def findBestSnapshotsCombinationFromTwoModels_parallel(self):
+    def findBestSnapshotsCombinationFrom_3_type_Models_parallel(self):
         '''
-        searching procedure of Two Models (A - first, B - second) linear model:
-        k/n(A1 + A2 + .. + An) + (1-k)/m(B1 + B2 + .. + Bm)
-        :return: k - coefficient which corresponds to concentration A phase in A-B compound
+        searching procedure of 3 type Models (A - first, B - second, C - third) linear model:
+        a/n(A1 + A2 + .. + An) + b/m(B1 + B2 + .. + Bm) + c/l(C1 + C2 + .. + Cl)
+        a/n + b/m + c/l = 1
+        :return: a/n,  b/m, c/l - coefficient which corresponds to concentration A,B,C phases in A-B-C compound
         Parallel realization
         '''
         model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
         model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
-        outDirectoryForTowModelsFitResults = self.loadListOfFilesForTwoModels_temperature()
+        model_C_projectWorkingFEFFoutDirectory, model_C_listOfSnapshotFiles, \
+        outDirectoryForModelsFitResults = self.loadListOfFilesFor_3_type_Models()
 
 
         def func(list_of_files):
             return one_thread_calculation(model_A_projectWorkingFEFFoutDirectory, list_of_files,
                                    model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles,
-                                   outDirectoryForTowModelsFitResults,
+                                   model_C_projectWorkingFEFFoutDirectory, model_C_listOfSnapshotFiles,
+                                   outDirectoryForModelsFitResults,
                                    weight_R_factor_FTR=self.weight_R_factor_FTR,
                                    weight_R_factor_chi=self.weight_R_factor_chi,
                                    scale_theory_factor_FTR=self.scale_theory_factor_FTR,
                                    scale_experiment_factor_FTR=self.scale_experiment_factor_FTR,
                                    model_A_numberOfSerialEquivalentAtoms=self.model_A.numberOfSerialEquivalentAtoms,
                                    model_B_numberOfSerialEquivalentAtoms=self.model_B.numberOfSerialEquivalentAtoms,
+                                   model_C_numberOfSerialEquivalentAtoms=self.model_C.numberOfSerialEquivalentAtoms,
                                    user=self.user,
                                    sample_preparation_mode=self.sample_preparation_mode,
                                    saveDataToDisk=self.saveDataToDisk)
@@ -163,7 +165,7 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
 
         # save ASCII column data:
         if self.saveDataToDisk:
-            self.outMinValsDir = outDirectoryForTowModelsFitResults
+            self.outMinValsDir = outDirectoryForModelsFitResults
             if obj.indicator_minimum_from_FTRlinear_chi:
             # if minimum have been found in FTRlinear_chi procedure:
                 obj.setOfSnapshotSpectra.saveSpectra_LinearComposition_FTR_from_linear_Chi_k(
@@ -173,6 +175,9 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
                 obj.model_A.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
                 # store model-B snapshots for this minimum case:
                 obj.model_B.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+                # store model-C snapshots for this minimum case:
+                obj.model_C.saveSpectra_SimpleComposition(output_dir=self.outMinValsDir)
+
             dst = os.path.join(self.outMinValsDir, os.path.basename(obj.pathToImage))
             copyfile(obj.pathToImage, dst)
 
@@ -188,16 +193,8 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
 
 if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
-    # inp = np.linspace(1,2500,2500)
-    # sz = 3
-    # Mn = 1
-    # res = slice_list(input=inp, size=sz, whole_num=Mn)
-    # tmp = check_if_lengths_are_equal(res)
-    # res2 = slice_list_extend(input=inp, size=sz, whole_num=Mn)
-    # print(res)
 
-
-    # start global search of Two-model combination in Parallel mode:
+    # start global search of 3 type Models combination in Parallel mode:
     a = FTR_gulp_to_feff_A_model()
     a.weight_R_factor_FTR = 1.0
     a.weight_R_factor_chi = 0.0
@@ -206,6 +203,7 @@ if __name__ == '__main__':
 
     a.model_A.numberOfSerialEquivalentAtoms = 1
     a.model_B.numberOfSerialEquivalentAtoms = 2
+    a.model_C.numberOfSerialEquivalentAtoms = 3
 
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
@@ -217,10 +215,10 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 5
+    a.parallel_job_numbers = 10
 
     #  if you want to find the minimum from the all snapshots do this:
-    a.findBestSnapshotsCombinationFromTwoModels_parallel()
+    a.findBestSnapshotsCombinationFrom_3_type_Models_parallel()
 
 
 
