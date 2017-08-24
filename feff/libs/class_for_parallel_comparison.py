@@ -1613,7 +1613,7 @@ class FTR_gulp_to_feff_A_model_base():
         print(model_B_modelName)
         model_C_modelName = os.path.split(os.path.split((model_C_projectWorkingFEFFoutDirectory))[0])[1]
         print(model_C_modelName)
-        maskTxt = '[{0}]__[{1}]__{2}]__{3}_({4})'.format(model_A_modelName, model_B_modelName, model_C_modelName,
+        maskTxt = '[{0}]__[{1}]__[{2}]__{3}_({4})'.format(model_A_modelName, model_B_modelName, model_C_modelName,
                                                  self.user, self.sample_preparation_mode)
         outDirectoryFor_3_type_ModelsFitResults = create_out_data_folder(dir_path, maskTxt)
         print('outdata directory is:\n', outDirectoryFor_3_type_ModelsFitResults, '\n', '---'*15)
