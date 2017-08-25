@@ -189,6 +189,20 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         runtime = timer() - start
         print('======'*10)
         print("total runtime is {0:f} seconds".format(runtime))
+        txt = '======'*10
+        txt += '\n'
+        txt += 'global minimum Rtot = {0}'.format(Rtot)
+        txt += '\n'
+        txt += '{0}'.format(snapshotName)
+        txt += '\n'
+        txt += '======'*10
+        txt += '\n'
+        txt += "total runtime is {0:f} seconds".format(runtime)
+        txt += '\n'
+        txt_file_name = os.path.join(outDirectoryForModelsFitResults, 'result_info.txt')
+        f = open(txt_file_name, 'x')
+        f.write(txt)
+        print('Resulting information have been saved in: ', txt_file_name)
 
 
 if __name__ == '__main__':
@@ -201,9 +215,9 @@ if __name__ == '__main__':
     a.scale_theory_factor_FTR = 0.81
     a.scale_experiment_factor_FTR = 1.0
 
-    a.model_A.numberOfSerialEquivalentAtoms = 3
+    a.model_A.numberOfSerialEquivalentAtoms = 1
     a.model_B.numberOfSerialEquivalentAtoms = 2
-    a.model_C.numberOfSerialEquivalentAtoms = 1
+    a.model_C.numberOfSerialEquivalentAtoms = 3
 
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
@@ -215,7 +229,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 5
+    a.parallel_job_numbers = 10
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFrom_3_type_Models_parallel()

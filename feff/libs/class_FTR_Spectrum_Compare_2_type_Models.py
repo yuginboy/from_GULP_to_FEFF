@@ -184,6 +184,20 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         runtime = timer() - start
         print('======'*10)
         print("total runtime is {0:f} seconds".format(runtime))
+        txt = '======' * 10
+        txt += '\n'
+        txt += 'global minimum Rtot = {0}'.format(Rtot)
+        txt += '\n'
+        txt += '{0}'.format(snapshotName)
+        txt += '\n'
+        txt += '======' * 10
+        txt += '\n'
+        txt += "total runtime is {0:f} seconds".format(runtime)
+        txt += '\n'
+        txt_file_name = os.path.join(outDirectoryForTowModelsFitResults, 'result_info.txt')
+        f = open(txt_file_name, 'x')
+        f.write(txt)
+        print('Resulting information have been saved in: ', txt_file_name)
 
 
 if __name__ == '__main__':

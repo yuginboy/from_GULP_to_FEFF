@@ -7,7 +7,7 @@
 from feff.libs.class_Spectrum import Spectrum
 import os
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, minimize_scalar
 from scipy.optimize import differential_evolution
 import matplotlib.pyplot as plt
 from feff.libs.feff_processing import xftf
@@ -167,47 +167,158 @@ class SpectraSet():
     def calcLinearSpectraComposition_FTR_from_linear_Chi_k(self, method='minimize'):
         # calc the minimum of Rfactros minimum R_chi+R_ftr
         num = len(self.dictOfSpectra)
-        x0 = np.zeros(num)+0.5
-        # if num == 2:
-        #     x0[0]=1
-        #     x0[1]=0
+        res = []
+        x0 = []
 
-        # for debug:
-        # plt.figure()
-        # plt.plot(self.dictOfSpectra[0]['data'].plotTwoSpectrum_FTR_r())
-        # plt.plot(self.dictOfSpectra[1]['data'].plotTwoSpectrum_FTR_r())
-        # plt.show()
+        # ==========================================================================================================
+        # ===== NEW algorithm with a reduce dimensions option:
+        if num == 2:
+            x0 = np.zeros(num-1, dtype=float) + 0.5
+            # for debug:
+            # plt.figure()
+            # plt.plot(self.dictOfSpectra[0]['data'].plotTwoSpectrum_FTR_r())
+            # plt.plot(self.dictOfSpectra[1]['data'].plotTwoSpectrum_FTR_r())
+            # plt.show()
 
-        def func(x):
-            # print(x)
-            self.result_FTR_from_linear_Chi_k.chi_vector, \
-            self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+            # def func(x):
+            #     # print(x)
+            #     self.result_FTR_from_linear_Chi_k.chi_vector, \
+            #     self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+            #
+            #     self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
+            #                                                    * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+            #     R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+            #     return R_tot
 
-            self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
-                                                           * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
-            R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
-            return R_tot
+            def func(t):
+                # print(x)
+                # increment dimention by 1 position:
+                x = np.zeros(num, dtype=float)
+                if np.size(t) > 1:
+                    # some times (it's a fucking understending thing for me) after for example 20 iterations with
+                    # len(t)= num-1 something was crushed in minimization algorithm and len(t) takes the value: num
+                    x[0] = t[0]
+                    x[1] = 1 - t[0]
+                else:
+                    x[0] = t
+                    x[1] = 1 - t
 
-        # create bounds:
-        bounds = []
-        for i in x0:
-            bounds.append((0, 1))
+                self.result_FTR_from_linear_Chi_k.chi_vector, \
+                self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
 
-        # res_tmp = func(x0)
-        if method == 'minimize':
-            # res = minimize(func, x0=x0, bounds=bounds, method='nelder-mead',
-            #                options={'xtol': 1e-8, 'disp': False})
-            res = minimize(func, x0=x0, bounds=bounds, method='TNC',
-                           options={'gtol': 1e-4, 'disp': False})
-        elif method == 'differential_evolution':
-            res = differential_evolution(func, bounds)
+                self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
+                                                               * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+                R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+                return R_tot
+
+            res = minimize_scalar(func, bounds=(0, 1), method='bounded',
+                           options={'xatol': 1e-5, 'disp': False})
 
 
-        if np.sum(res.x) > 0:
-            self.coefficient_vector_FTR_from_linear_Chi_k = res.x / np.sum(res.x)
-        else:
-            self.coefficient_vector_FTR_from_linear_Chi_k = res.x
+            res_arr_x = np.zeros(num, dtype=float)
+            if np.size(res.x) > 1:
+                res_arr_x[0] = res.x[0]
+                res_arr_x[1] = 1 - res.x[0]
+            else:
+                res_arr_x[0] = res.x
+                res_arr_x[1] = 1 - res.x
 
+            if np.sum(res_arr_x) > 1:
+                self.coefficient_vector_FTR_from_linear_Chi_k = res_arr_x / np.sum(res_arr_x)
+            else:
+                self.coefficient_vector_FTR_from_linear_Chi_k = res_arr_x
+
+        elif num > 2:
+            x0 = np.zeros(num-1, dtype=float) + 0.5
+            def func(t):
+                # print(x)
+                # decrement dimention by 1 position:
+                x = np.zeros(num, dtype=float)
+                if np.size(t) == num-1:
+                    x[0:num - 1] = t[0:num - 1]
+                    x[num - 1] = 1 - np.sum(t[0:num - 1])
+                else:
+                    # some times (it's a fucking understending thing for me) after for example 20 iterations with
+                    # len(t)= num-1 something was crushed in minimization algorithm and len(t) takes the value: num
+                    x = t
+
+                self.result_FTR_from_linear_Chi_k.chi_vector, \
+                self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+
+                self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
+                                                               * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+                R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+                return R_tot
+
+            # create bounds:
+            bounds = []
+            for i in x0:
+                bounds.append((0, 1))
+
+            # res_tmp = func(x0)
+            if method == 'minimize':
+                # res = minimize(func, x0=x0, bounds=bounds, method='nelder-mead',
+                #                options={'xtol': 1e-8, 'disp': False})
+                res = minimize(func, x0=x0, bounds=bounds, method='TNC',
+                               options={'gtol': 1e-4, 'disp': False})
+            elif method == 'differential_evolution':
+                res = differential_evolution(func, bounds)
+
+            # if np.sum(res.x) > 0:
+            #     self.coefficient_vector_FTR_from_linear_Chi_k = res.x / np.sum(res.x)
+            # else:
+            #     self.coefficient_vector_FTR_from_linear_Chi_k = res.x
+
+            res_arr_x = np.zeros(num, dtype=float)
+            res_arr_x[0:num-1] = res.x[0:num-1]
+            res_arr_x[num-1] = 1 - np.sum(res.x[0:num-1])
+
+            if np.sum(res_arr_x) > 1:
+                self.coefficient_vector_FTR_from_linear_Chi_k = res_arr_x / np.sum(res_arr_x)
+            else:
+                self.coefficient_vector_FTR_from_linear_Chi_k = res_arr_x
+        # ====== END of NEW algorithm =============
+        # ==========================================================================================================
+
+
+        # # ==========================================================================================================
+        # # ====== Old version of the allgorithm:
+        # x0 = np.zeros(num, dtype=float) + 0.5
+        # #     x0[0]=1
+        # #     x0[1]=0
+        #
+        # # create bounds:
+        # bounds = []
+        # for i in x0:
+        #     bounds.append((0, 1))
+        #
+        # # define the function for minimization:
+        # def func(x):
+        #     # print(x)
+        #
+        #     self.result_FTR_from_linear_Chi_k.chi_vector, \
+        #     self.result_FTR_from_linear_Chi_k.ftr_vector = self.func_FTR_from_linear_Chi_k(x)
+        #
+        #     self.result_FTR_from_linear_Chi_k.ftr_vector = self.result_FTR_from_linear_Chi_k.ftr_vector \
+        #                                                    * self.result_FTR_from_linear_Chi_k.scale_theory_factor_FTR
+        #     R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
+        #     return R_tot
+        #
+        # # res_tmp = func(x0)
+        # if method == 'minimize':
+        #     # res = minimize(func, x0=x0, bounds=bounds, method='nelder-mead',
+        #     #                options={'xtol': 1e-8, 'disp': False})
+        #     res = minimize(func, x0=x0, bounds=bounds, method='TNC',
+        #                    options={'gtol': 1e-4, 'disp': False})
+        # elif method == 'differential_evolution':
+        #     res = differential_evolution(func, bounds)
+        #
+        # if np.sum(res.x) > 0:
+        #     self.coefficient_vector_FTR_from_linear_Chi_k = res.x / np.sum(res.x)
+        # else:
+        #     self.coefficient_vector_FTR_from_linear_Chi_k = res.x
+        # # ++++++++++++++++++ END of Old algorithm ++++++++++++++++++++
+        # # ==========================================================================================================
 
 
         self.result_FTR_from_linear_Chi_k.chi_vector = []
