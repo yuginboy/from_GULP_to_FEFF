@@ -649,7 +649,9 @@ class FTR_gulp_to_feff_A_model_base():
             number = number + 1
             print('==> file is: {0}'.format(filePath))
             print('==> Number is: {0}'.format(number))
+
             currentSerialSnapNumber = currentSerialSnapNumber + 1
+
             self.theory_one.pathToLoadDataFile = filePath
             self.theory_one.scale_theory_factor_FTR = self.scale_theory_factor_FTR
             self.theory_one.scale_theory_factor_CHI = self.scale_theory_factor_CHI
@@ -769,7 +771,7 @@ class FTR_gulp_to_feff_A_model_base():
         # store table to ASCII file:
         self.table.outDirPath = self.outMinValsDir
         timestamp = datetime.datetime.now().strftime("_[%Y-%m-%d_%H_%M_%S]_")
-        modelName, snapNumberStr = self.get_name_of_model_from_fileName()
+        # modelName, snapNumberStr = self.get_name_of_model_from_fileName()
         self.table.outFileName = modelName + timestamp + '_So={1:1.3f}_R={0:1.4}.txt'.format(self.minimum.Rtot,
                                                                                              self.scale_theory_factor_FTR)
         self.table.writeToASCIIFile()
@@ -1826,8 +1828,11 @@ if __name__ == '__main__':
     # plt.show()
 
 
-    # # start global searching procedure:
+    # # # start global searching procedure:
+    # # fit the sub-components of one model
+    # # If Model has X-num of Mn then procedure search the weights of X-num of snapshots.
     # a = FTR_gulp_to_feff_A_model_base()
+    # a.numberOfSerialEquivalentAtoms = 3
     # a.weight_R_factor_FTR = 1.0
     # a.weight_R_factor_chi = 0.0
     # a.scale_theory_factor_FTR = 0.81
