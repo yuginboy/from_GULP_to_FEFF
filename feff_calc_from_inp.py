@@ -305,7 +305,8 @@ class FEFF_calculation_class():
                      y_median=chi_median, y_max=chi_max, y_min=chi_min)
 
         print('delete TMP folder: ', tmpPath)
-        os.removedirs(tmpPath)
+        import shutil
+        shutil.rmtree(tmpPath)
         print('program is finished')
         # print('-> create a video file:')
         # create_graphs_and_save_images_from_chi_dat(dataPath = outDirPath, each_elem_to_draw = 10)

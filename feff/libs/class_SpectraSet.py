@@ -85,6 +85,7 @@ class SpectraSet():
     def funcForOptimize(self, x):
         # create function of snapshots linear composition Sum[x_i*F_i]
         num = len(self.dictOfSpectra)
+        x = np.abs(x, type=float)
         tmp_chi_vector = []
         tmp_ftr_vector = []
         sum_x = np.sum(x)
@@ -406,32 +407,53 @@ class SpectraSet():
         R_tot, R_ftr, R_chi = self.get_R_factor_SimpleComposition()
         txt = 'simple R={0:1.4f}: '.format(R_tot)
         num = len(self.dictOfSpectra)
-        for i in self.dictOfSpectra:
-            val = self.dictOfSpectra[i]
-            txt = txt + '{0}x'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
-            if i < num-1:
-                txt = txt + ' + '
+        if num < 4:
+            for i in self.dictOfSpectra:
+                val = self.dictOfSpectra[i]
+                txt = txt + '{0}x'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
+                if i < num-1:
+                    txt = txt + ' + '
+        else:
+            val_first = self.dictOfSpectra[0]
+            val_last = self.dictOfSpectra[num - 1]
+            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+                format(n=num, f=val_first['data'].label, l=val_last['data'].label)
+
         self.result_simple.label_latex = txt
         self.result_simple.label = txt.replace(':', '_').replace(' ', '_')
+
     def getInfo_SimpleComposition(self):
         txt = ''
         num = len(self.dictOfSpectra)
-        for i in self.dictOfSpectra:
-            val = self.dictOfSpectra[i]
-            txt = txt + '{0}x'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
-            if i < num-1:
-                txt = txt + ' + '
+        if num < 4:
+            for i in self.dictOfSpectra:
+                val = self.dictOfSpectra[i]
+                txt = txt + '{0}x'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
+                if i < num-1:
+                    txt = txt + ' + '
+        else:
+            val_first = self.dictOfSpectra[0]
+            val_last = self.dictOfSpectra[num - 1]
+            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+                format(n=num, f=val_first['data'].label, l=val_last['data'].label)
         return txt
 
     def updateInfo_LinearComposition(self):
         R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition()
         txt = 'linear R={0:1.4f}: '.format(R_tot)
         num = len(self.dictOfSpectra)
-        for i in self.dictOfSpectra:
-            val = self.dictOfSpectra[i]
-            txt = txt + '{0}x'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
-            if i < num-1:
-                txt = txt + ' + '
+        if num < 4:
+            for i in self.dictOfSpectra:
+                val = self.dictOfSpectra[i]
+                txt = txt + '{0}x'.format(round(self.coefficient_vector[i], 4)) + val['data'].label
+                if i < num-1:
+                    txt = txt + ' + '
+        else:
+            val_first = self.dictOfSpectra[0]
+            val_last = self.dictOfSpectra[num - 1]
+            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'.\
+                format(n=num, f=val_first['data'].label, l=val_last['data'].label)
+
         self.result.label_latex = txt
         self.result.label = txt.replace(':', '_').replace(' ', '_')
 
@@ -439,12 +461,20 @@ class SpectraSet():
         R_tot, R_ftr, R_chi = self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()
         txt = 'FTR(linear $\chi$) R={0:1.4f}: '.format(R_tot)
         num = len(self.dictOfSpectra)
-        for i in self.dictOfSpectra:
-            val = self.dictOfSpectra[i]
-            txt = txt + '{0}x'.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 3)) + val['data'].label
-            if i < num-1:
-                txt = txt + ' + '
-        self.result_FTR_from_linear_Chi_k.label = txt.replace(':', '_').replace(' ', '_').replace('$', '').replace('\\', '')
+        if num < 4:
+            for i in self.dictOfSpectra:
+                val = self.dictOfSpectra[i]
+                txt = txt + '{0}x'.format(round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 3)) + val['data'].label
+                if i < num-1:
+                    txt = txt + ' + '
+        else:
+            val_first = self.dictOfSpectra[0]
+            val_last = self.dictOfSpectra[num - 1]
+            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+                format(n=num, f=val_first['data'].label, l=val_last['data'].label)
+
+        self.result_FTR_from_linear_Chi_k.label = txt.replace(':', '_').replace(' ', '_').\
+            replace('$', '').replace('\\', '')
         txt = 'complex spectra ' + 'FTR(linear $\chi$) R={0:1.4f}'.format(R_tot)
         self.result_FTR_from_linear_Chi_k.label_latex = txt
 
@@ -452,12 +482,18 @@ class SpectraSet():
         # return only the formula of snapshot name and coefficient
         txt = ''
         num = len(self.dictOfSpectra)
-        for i in self.dictOfSpectra:
-            val = self.dictOfSpectra[i]
-            txt = txt + '{0}x[{1}]'.format( round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 3),
-                                           val['data'].label )
-            if i < num-1:
-                txt = txt + ' + '
+        if num < 4:
+            for i in self.dictOfSpectra:
+                val = self.dictOfSpectra[i]
+                txt = txt + '{0}x[{1}]'.format( round(self.coefficient_vector_FTR_from_linear_Chi_k[i], 3),
+                                               val['data'].label )
+                if i < num-1:
+                    txt = txt + ' + '
+        else:
+            val_first = self.dictOfSpectra[0]
+            val_last = self.dictOfSpectra[num - 1]
+            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+                format(n=num, f=val_first['data'].label, l=val_last['data'].label)
         return txt
 
 

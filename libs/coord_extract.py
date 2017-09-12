@@ -3,6 +3,7 @@ import re
 import os, sys
 import progressbar
 # import
+import shutil
 from libs.classes import Unitcell
 from feff.mainFEFF import feffCalcFun
 from feff_calc_from_inp_parallel import FEFF_parallel_calculation_class
@@ -193,5 +194,5 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
     atomInSnapshot.z = np.average(atomInSnapshot.zAver, axis=1)
     if doWriteFEFFinp:
         atomInSnapshot.writeAverFeffInpFile()
-
+    shutil.rmtree(atomInSnapshot.outDirFEFFtmp)
     print('end of the FEFF simulations')
