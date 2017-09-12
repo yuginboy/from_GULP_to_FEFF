@@ -40,6 +40,22 @@ def createUniqFile(filename, mask='test'):
         i+=1
     return outfile
 
+def createUniqFile_from_idx(filename, mask='test', idx=0):
+    outfile = filename
+    dirname = os.path.dirname(os.path.abspath(filename))
+    fn = os.path.basename(os.path.abspath(filename)).split('.')[0]
+    ext = os.path.basename(os.path.abspath(filename)).split('.')[1]
+    # checkFile = 1
+    # i = 1
+    # while checkFile > 0:
+    #     outfile = os.path.join(dirname, mask + '%06d' % i + '.' + ext)
+    #     if not os.path.exists(outfile):
+    #         checkFile =0
+    #
+    #     i+=1
+    outfile = os.path.join(dirname, mask + '%06d' % idx + '.' + ext)
+    return outfile
+
 def listOfFiles(dirToScreens):
     '''
     return only the names of the files in directory

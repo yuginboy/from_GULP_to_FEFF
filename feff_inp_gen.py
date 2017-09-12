@@ -63,7 +63,7 @@ if os.path.isfile(file_path):
     # intrinsic index of line in snapshot:
     k = 0
     file = open(file_path, 'r')
-    loadCoords(file,timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile)
+    loadCoords(file,timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, parallel_job_numbers=5)
 
 
     print('DONE with ', folder_name)

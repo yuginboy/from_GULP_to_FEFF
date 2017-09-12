@@ -8,7 +8,7 @@ from feff.mainFEFF import feffCalcFun
 
 limitNumOfSnapshots = 1e6
 
-def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
+def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, parallel_job_numbers=5):
     '''
 
     :param file: .history
@@ -20,6 +20,13 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
     k=0
     j=0
     atomInSnapshot = Unitcell(numOfAtoms)
+
+    doWriteSCF = False
+    doWriteXSF = False
+    doWriteXYZ = False
+    doWriteCFG = False
+    doWriteRDF = False
+    doWriteFEFFinp = True
 
     atomInSnapshot.rdfDist = vectForRDF
     atomInSnapshot.latCons = HO[0, 0]
@@ -75,17 +82,24 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
             if i == timestep[j+1]:
                 # когда номер строки равен номеру строки с началом следуюшего снапшота, то увеличиваем номер
                 # текущего снапшота на единицу
-                atomInSnapshot.writeFeffInpFileSeq()
-                atomInSnapshot.writeSCFfileSeq()
-                atomInSnapshot.writeRDFfileSeq()
-                atomInSnapshot.writeXYZfileSeq()
+                if doWriteFEFFinp:
+                    atomInSnapshot.writeFeffInpFileSeq()
+                if doWriteSCF:
+                    atomInSnapshot.writeSCFfileSeq()
+                if doWriteRDF:
+                    atomInSnapshot.writeRDFfileSeq()
+                if doWriteXYZ:
+                    atomInSnapshot.writeXYZfileSeq()
+
                 atomInSnapshot.xAver = np.column_stack((atomInSnapshot.xAver, atomInSnapshot.x))# X
                 atomInSnapshot.yAver = np.column_stack((atomInSnapshot.yAver, atomInSnapshot.y))# Y
                 atomInSnapshot.zAver = np.column_stack((atomInSnapshot.zAver, atomInSnapshot.z))# Z
                 if (j % 100 == 0):
                     # pass
-                    atomInSnapshot.writeXYZfileSeq()
-                    atomInSnapshot.writeXSFfileSeq()
+                    if doWriteXYZ:
+                        atomInSnapshot.writeXYZfileSeq()
+                    if doWriteXSF:
+                        atomInSnapshot.writeXSFfileSeq()
                 j = j+1
                 if (j % 10 == 0):
                     # print(j, ' from ', len(timestep))
@@ -123,21 +137,34 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
 
             if i == numOfLinesInFile:
                 bar.finish()
-                atomInSnapshot.writeFeffInpFileSeq()
-                atomInSnapshot.writeRDFfileSeq()
-                atomInSnapshot.writeXYZfileSeq()
-                atomInSnapshot.writeXSFfileSeq()
+                # atomInSnapshot.writeFeffInpFileSeq()
+                # atomInSnapshot.writeRDFfileSeq()
+                # atomInSnapshot.writeXYZfileSeq()
+                # atomInSnapshot.writeXSFfileSeq()
+                if doWriteFEFFinp:
+                    atomInSnapshot.writeFeffInpFileSeq()
+                if doWriteSCF:
+                    atomInSnapshot.writeSCFfileSeq()
+                if doWriteRDF:
+                    atomInSnapshot.writeRDFfileSeq()
+                if doWriteXYZ:
+                    atomInSnapshot.writeXYZfileSeq()
+
                 print("output files [feff, rdf, xyz, xsf] were created for the last snapshot")
 
     if i < numOfLinesInFile:
         bar.finish()
     # write CFG files:
-    atomInSnapshot.writeCFGfileSeq()
+    if doWriteCFG:
+        atomInSnapshot.writeCFGfileSeq()
     print("input files for QSTEM were created")
     # calculate RDF values:
-    atomInSnapshot.calcAndPlotMeanRDF()
-    print('Start FEFF simulations')
-    feffCalcFun(dataPath = atomInSnapshot.outDirFEFF,
+    if doWriteRDF:
+        atomInSnapshot.calcAndPlotMeanRDF()
+
+    if doWriteFEFFinp:
+        print('Start FEFF simulations')
+        feffCalcFun(dataPath = atomInSnapshot.outDirFEFF,
                 tmpPath=atomInSnapshot.outDirFEFFtmp,
                 outDirPath=atomInSnapshot.outDirFEFFCalc,
                 plotTheData = True)
@@ -147,6 +174,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile):
     atomInSnapshot.x = np.average(atomInSnapshot.xAver, axis=1)
     atomInSnapshot.y = np.average(atomInSnapshot.yAver, axis=1)
     atomInSnapshot.z = np.average(atomInSnapshot.zAver, axis=1)
-    atomInSnapshot.writeAverFeffInpFile()
+    if doWriteFEFFinp:
+        atomInSnapshot.writeAverFeffInpFile()
 
     print('end of the FEFF simulations')
