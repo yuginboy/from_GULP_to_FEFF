@@ -1,6 +1,6 @@
 import numpy as np
 import periodictable as pd
-from libs.dir_and_file_operations import createUniqFile
+from libs.dir_and_file_operations import createUniqFile, createUniqFile_from_idx
 from libs.inputheader import writeHeaderToInpFile
 from libs.dir_and_file_operations import create_out_data_folder
 import os
@@ -11,6 +11,7 @@ def bohr_to_angstrom(x=0):
     return x/1.8897259885789 # 1 angstrom [Å] = 1.8897259885789 Bohr radius [b, a.u.]
 
 class Unitcell(AverageRDF):
+    _current_feff_file_idx = 0
     def __init__(self, numOfAtoms=1):
         # lattice constant value:
         self.latCons = 1
@@ -60,6 +61,15 @@ class Unitcell(AverageRDF):
         self.primvec.append('   0.000       0.000       1.000\n')
 
         super().__init__()
+
+    def set_current_feff_file_idx(self, idx):
+        Unitcell._current_feff_file_idx = idx
+
+    def get_current_feff_file_idx(self):
+        return Unitcell._current_feff_file_idx
+
+    def increment_current_feff_file_idx(self):
+        self.set_current_feff_file_idx( self.get_current_feff_file_idx() + 1 )
 
     def shiftZeroToCenterOfStruct(self):
 
@@ -320,6 +330,29 @@ class Unitcell(AverageRDF):
                                 self.getStoichiometry(uniqTags[i]))
                     file.write(line)
 
+    # def writeFeffInpFileSeq(self, ext='inp'):
+    #     '''
+    #     # write feff input header lines, table of potentials and table
+    #     # coordinates and attributes of atoms to file
+    #     :param filename: full path to output file
+    #     :param mask: base name of output file (ex:"test_000001.txt" )
+    #     :return:
+    #     '''
+    #     numOfRepeat = self.tag.tolist().count(self.majorElemTag)
+    #     mask = self.outNameFEFF + '_'
+    #     self.backUpStruct()
+    #     folder = self.outDirFEFF
+    #     filename = os.path.join(folder, 'test.' + ext)
+    #     vectorIndex = (self.tag == self.majorElemTag).nonzero()[0].tolist()
+    #     for i in range(0, numOfRepeat, 1):
+    #         self.centrShift(centrAtomIndex=vectorIndex[i])
+    #         fn = createUniqFile(filename, mask=mask)
+    #         writeHeaderToInpFile(filename=fn)
+    #         self.ipotTableConstructor(filename=fn, overwriteOrNot=False)
+    #         self.writeTableToFile(filename=fn, overwriteOrNot=False)
+    #         # print('')
+    #         self.restoreFromBackUp()
+
     def writeFeffInpFileSeq(self, ext='inp'):
         '''
         # write feff input header lines, table of potentials and table
@@ -336,7 +369,9 @@ class Unitcell(AverageRDF):
         vectorIndex = (self.tag == self.majorElemTag).nonzero()[0].tolist()
         for i in range(0, numOfRepeat, 1):
             self.centrShift(centrAtomIndex=vectorIndex[i])
-            fn = createUniqFile(filename, mask=mask)
+            self.increment_current_feff_file_idx()
+            idx = self.get_current_feff_file_idx()
+            fn = createUniqFile_from_idx(filename, mask=mask, idx=idx)
             writeHeaderToInpFile(filename=fn)
             self.ipotTableConstructor(filename=fn, overwriteOrNot=False)
             self.writeTableToFile(filename=fn, overwriteOrNot=False)
