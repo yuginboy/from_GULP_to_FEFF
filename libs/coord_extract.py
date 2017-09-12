@@ -175,7 +175,12 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
             # load inp dir name:
             MainObj.dirNameInp = atomInSnapshot.outDirFEFF
             # prepare vars:
-            MainObj.prepare_vars()
+            from feff.libs.dir_and_file_operations import listOfFilesFN_with_selected_ext
+            MainObj.list_of_inp_files = listOfFilesFN_with_selected_ext(MainObj.dirNameInp, ext='inp')
+            MainObj.dirNameOut = atomInSnapshot.outDirFEFFCalc
+            # use RAM-disk:
+            MainObj.is_RAM_disk_exist = True
+            MainObj.path_to_RAM_disk = '/mnt/ramdisk/yugin/tmp'
             # set parallel jobs number:
             MainObj.parallel_job_numbers = int(parallel_job_numbers)
             # do parallel calculation with a pathos multiprocessing tool

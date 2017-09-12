@@ -45,6 +45,9 @@ class FEFF_calculation_class():
         #        parameter (nphx = 21) before it was: nphx = 7
         self.path_to_feff_exe = 'wine cmd /C "/home/yugin/PycharmProjects/feff/exe/feff_84_2016-08-02.bat"'
 
+        self.is_RAM_disk_exist = True
+        self.path_to_RAM_disk = '/mnt/ramdisk/yugin/tmp'
+
     def get_working_dir(self):
         # load directory with FEFF input files for calculation in parallel mode
 
@@ -90,7 +93,11 @@ class FEFF_calculation_class():
         # do calculation in a serial mode (under parallel constructions)
 
         # create unique tmp folder
-        outDirFEFFtmp = create_out_data_folder(main_folder_path=os.path.split(os.path.normpath(self.dirNameInp))[0],
+        if self.is_RAM_disk_exist:
+            outDirFEFFtmp = create_out_data_folder(main_folder_path=self.path_to_RAM_disk,
+                                                   first_part_of_folder_name='tmp_')
+        else:
+            outDirFEFFtmp = create_out_data_folder(main_folder_path=os.path.split(os.path.normpath(self.dirNameInp))[0],
                                first_part_of_folder_name='tmp_')
 
         # outDirFEFFchi = create_out_data_folder(main_folder_path=os.path.split(os.path.normpath(self.dirNameInp))[0],
@@ -297,6 +304,8 @@ class FEFF_calculation_class():
                      case=folder_name + f'_shift={shift}',
                      y_median=chi_median, y_max=chi_max, y_min=chi_min)
 
+        print('delete TMP folder: ', tmpPath)
+        os.removedirs(tmpPath)
         print('program is finished')
         # print('-> create a video file:')
         # create_graphs_and_save_images_from_chi_dat(dataPath = outDirPath, each_elem_to_draw = 10)

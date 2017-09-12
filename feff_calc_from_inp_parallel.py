@@ -100,6 +100,8 @@ if __name__ == '__main__':
     MainObj.get_working_dir()
     # prepare variables:
     MainObj.prepare_vars()
+    # use RAM-disk:
+    MainObj.is_RAM_disk_exist = True
     # set parallel jobs number:
     MainObj.parallel_job_numbers = 10
     # do parallel calculation with a pathos multiprocessing tool
