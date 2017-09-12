@@ -416,7 +416,7 @@ class SpectraSet():
         else:
             val_first = self.dictOfSpectra[0]
             val_last = self.dictOfSpectra[num - 1]
-            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+            txt = txt + 'sum of N={n} snapshots [from {f} to {l}]'. \
                 format(n=num, f=val_first['data'].label, l=val_last['data'].label)
 
         self.result_simple.label_latex = txt
@@ -434,7 +434,7 @@ class SpectraSet():
         else:
             val_first = self.dictOfSpectra[0]
             val_last = self.dictOfSpectra[num - 1]
-            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+            txt = txt + 'sum of N={n} snapshots [from {f} to {l}]'. \
                 format(n=num, f=val_first['data'].label, l=val_last['data'].label)
         return txt
 
@@ -451,7 +451,7 @@ class SpectraSet():
         else:
             val_first = self.dictOfSpectra[0]
             val_last = self.dictOfSpectra[num - 1]
-            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'.\
+            txt = txt + 'sum of N={n} snapshots [from {f} to {l}]'.\
                 format(n=num, f=val_first['data'].label, l=val_last['data'].label)
 
         self.result.label_latex = txt
@@ -470,7 +470,7 @@ class SpectraSet():
         else:
             val_first = self.dictOfSpectra[0]
             val_last = self.dictOfSpectra[num - 1]
-            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+            txt = txt + 'sum of N={n} snapshots [from {f} to {l}]'. \
                 format(n=num, f=val_first['data'].label, l=val_last['data'].label)
 
         self.result_FTR_from_linear_Chi_k.label = txt.replace(':', '_').replace(' ', '_').\
@@ -492,7 +492,7 @@ class SpectraSet():
         else:
             val_first = self.dictOfSpectra[0]
             val_last = self.dictOfSpectra[num - 1]
-            txt = txt + 'sum of N={n} snapshots, [from {f} to {l}]'. \
+            txt = txt + 'sum of N={n} snapshots [from {f} to {l}]'. \
                 format(n=num, f=val_first['data'].label, l=val_last['data'].label)
         return txt
 
@@ -503,7 +503,8 @@ class SpectraSet():
             val['data'].plotOneSpectrum_FTR_r()
         self.result_simple.plotTwoSpectrum_FTR_r()
         plt.title('$R_{{FT(r)}}$  = {0}'.format(round(self.get_R_factor_SimpleComposition()[1], 4)))
-        plt.legend()
+        if len(self.dictOfSpectra) < 4:
+            plt.legend()
         plt.show()
 
 
@@ -513,7 +514,8 @@ class SpectraSet():
             val['data'].plotOneSpectrum_chi_k()
         self.result_simple.plotTwoSpectrum_chi_k()
         plt.title('$R_{{\chi(k)}}$ = {0}'.format(round(self.get_R_factor_SimpleComposition()[2], 4)))
-        plt.legend()
+        if len(self.dictOfSpectra) < 4:
+            plt.legend()
         plt.show()
 
     def plotSpectra_FTR_r_LinearComposition(self):
@@ -522,7 +524,8 @@ class SpectraSet():
             val['data'].plotOneSpectrum_FTR_r()
         self.result.plotTwoSpectrum_FTR_r()
         plt.title('$R_{{FT(r)}}$  = {0}'.format(round(self.get_R_factor_LinearComposition()[1], 4)))
-        plt.legend()
+        if len(self.dictOfSpectra) < 4:
+            plt.legend()
         plt.show()
 
     def plotSpectra_FTR_r_LinearComposition_FTR_from_linear_Chi_k(self):
@@ -541,7 +544,8 @@ class SpectraSet():
         self.result_FTR_from_linear_Chi_k.plotTwoSpectrum_FTR_r()
         plt.title('$R_{{FT(r)\leftarrow\chi(k)}}$  = {0}, k = {1}'.format(
             round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[1], 4), txt_coeff))
-        plt.legend()
+        if len(self.dictOfSpectra) < 4:
+            plt.legend()
         plt.show()
 
     def plotSpectra_chi_k_LinearComposition(self):
@@ -550,7 +554,8 @@ class SpectraSet():
             val['data'].plotOneSpectrum_chi_k()
         self.result.plotTwoSpectrum_chi_k()
         plt.title('$R_{{\chi(k)}}$ = {0}'.format(round(self.get_R_factor_LinearComposition()[2], 4)))
-        plt.legend()
+        if len(self.dictOfSpectra) < 4:
+            plt.legend()
         plt.show()
 
     def plotSpectra_chi_k_LinearComposition_FTR_from_linear_Chi_k(self):
@@ -569,7 +574,8 @@ class SpectraSet():
         self.result_FTR_from_linear_Chi_k.plotTwoSpectrum_chi_k()
         plt.title('$R_{{\chi(k)}}$ = {0}, k = {1}'.format(
             round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[2], 4), txt_coeff))
-        plt.legend()
+        if len(self.dictOfSpectra) < 4:
+            plt.legend()
         plt.show()
 
     def saveSpectra_LinearComposition_FTR_from_linear_Chi_k(self, output_dir=''):
@@ -706,7 +712,7 @@ class SpectraSet():
             out_array_chi[:, i+1] = val['data'].chi_vector
             headerTxt_ftr = headerTxt_ftr + 'sanpshot:' + val['data'].label
             headerTxt_chi = headerTxt_chi + 'sanpshot:' + val['data'].label
-            txt = txt + '{0}*[ '.format(round(self.coefficient_vector[i]*0+0.5, 1)) + val['data'].label + ' ]'
+            txt = txt + '{0}*[ '.format(round(self.coefficient_vector[i] + 1/num, 1)) + val['data'].label + ' ]'
             if i < num - 1:
                 txt = txt + ' + '
             headerTxt_ftr = headerTxt_ftr + '\t'

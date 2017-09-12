@@ -171,6 +171,7 @@ class FTR_gulp_to_feff_A_model_base():
         # self.theory_SimpleComposition = Spectrum()
         # self.theory_LinearComposition = Spectrum()
 
+        self.find_min_Rtot_in_single_snapshot = True
         self.do_SimpleSpectraComposition = True
         self.do_LinearSpectraComposition = False
         self.do_FTR_from_linear_Chi_k_SpectraComposition = True
@@ -647,8 +648,8 @@ class FTR_gulp_to_feff_A_model_base():
 
         for filePath in self.listOfSnapshotFiles:
             number = number + 1
-            print('==> file is: {0}'.format(filePath))
-            print('==> Number is: {0}'.format(number))
+            # print('==> file is: {0}'.format(filePath))
+            # print('==> Number is: {0}'.format(number))
 
             currentSerialSnapNumber = currentSerialSnapNumber + 1
 
@@ -685,9 +686,10 @@ class FTR_gulp_to_feff_A_model_base():
             self.currentValues.number = number
             self.currentValues.snapshotName = os.path.basename(filePath)
             self.table.addRecord(self.currentValues)
-            if R_tot < self.minimum.Rtot:
-                self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
-                self.updatePlot()
+            if self.find_min_Rtot_in_single_snapshot:
+                if R_tot < self.minimum.Rtot:
+                    self.minimum.Rtot, self.minimum.Rftr, self.minimum.Rchi = R_tot, R_ftr, R_chi
+                    self.updatePlot()
 
             if currentSerialSnapNumber == self.numberOfSerialEquivalentAtoms:
 
@@ -696,7 +698,7 @@ class FTR_gulp_to_feff_A_model_base():
                 if self.do_SimpleSpectraComposition:
                     # ----- Simple Composition of Snapshots:
                     self.setOfSnapshotSpectra.calcSimpleSpectraComposition()
-                    print('Simple composition has been calculated')
+                    # print('Simple composition has been calculated')
                     self.setOfSnapshotSpectra.updateInfo_SimpleComposition()
                     number = number + 1
                     R_tot, R_ftr, R_chi = self.setOfSnapshotSpectra.get_R_factor_SimpleComposition()
@@ -1833,6 +1835,8 @@ if __name__ == '__main__':
     # If Model has X-num of Mn then procedure search the weights of X-num of snapshots.
     a = FTR_gulp_to_feff_A_model_base()
     a.numberOfSerialEquivalentAtoms = 79
+    a.do_FTR_from_linear_Chi_k_SpectraComposition = False
+    a.find_min_Rtot_in_single_snapshot = False
     a.weight_R_factor_FTR = 1.0
     a.weight_R_factor_chi = 0.0
     a.scale_theory_factor_FTR = 0.81
