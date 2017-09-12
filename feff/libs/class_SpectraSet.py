@@ -85,7 +85,7 @@ class SpectraSet():
     def funcForOptimize(self, x):
         # create function of snapshots linear composition Sum[x_i*F_i]
         num = len(self.dictOfSpectra)
-        x = np.abs(x, type=float)
+        x = np.abs(x)
         tmp_chi_vector = []
         tmp_ftr_vector = []
         sum_x = np.sum(x)

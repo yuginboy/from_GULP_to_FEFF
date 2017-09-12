@@ -56,7 +56,7 @@ def listOfFiles(dirToScreens):
     :return:
     '''
     files = [f for f in os.listdir(dirToScreens) if os.path.isfile(os.path.join(dirToScreens,f))]
-    return files
+    return sorted(files)
 
 def listOfFilesNameWithoutExt(dirToScreens):
     '''
@@ -70,7 +70,7 @@ def listOfFilesNameWithoutExt(dirToScreens):
     '''
     base = [f for f in os.listdir(dirToScreens) if os.path.isfile(os.path.join(dirToScreens,f))]
     names = [os.path.splitext(f)[0] for f in base]
-    return names
+    return sorted(names)
 
 def listOfFilesFN(folder):
     '''
@@ -78,7 +78,7 @@ def listOfFilesFN(folder):
 
     '''
     files = listOfFiles(folder)
-    return [os.path.join(folder,f) for f in os.listdir(folder)]
+    return sorted([os.path.join(folder,f) for f in os.listdir(folder)])
 
 def listOfFilesFN_with_selected_ext(folder, ext = 'png'):
     '''
@@ -86,7 +86,9 @@ def listOfFilesFN_with_selected_ext(folder, ext = 'png'):
 
     '''
     files = listOfFiles(folder)
-    return [os.path.join(folder,f) for f in os.listdir(folder) if f.endswith(ext)]
+    out = [os.path.join(folder,f) for f in os.listdir(folder) if f.endswith(ext)]
+    out = sorted(out)
+    return out
 
 def deleteAllFilesInFolder(folder):
     # delete all files in the current directory:
