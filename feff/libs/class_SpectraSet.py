@@ -712,7 +712,7 @@ class SpectraSet():
             out_array_chi[:, i+1] = val['data'].chi_vector
             headerTxt_ftr = headerTxt_ftr + 'sanpshot:' + val['data'].label
             headerTxt_chi = headerTxt_chi + 'sanpshot:' + val['data'].label
-            txt = txt + '{0}*[ '.format(round(self.coefficient_vector[i] + 1/num, 1)) + val['data'].label + ' ]'
+            txt = txt + '{0}*[ '.format(round(self.coefficient_vector[i], 4)) + val['data'].label + ' ]'
             if i < num - 1:
                 txt = txt + ' + '
             headerTxt_ftr = headerTxt_ftr + '\t'
