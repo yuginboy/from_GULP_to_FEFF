@@ -98,6 +98,8 @@ if __name__ == '__main__':
     MainObj = FEFF_parallel_calculation_class()
     # load inp dir name:
     MainObj.get_working_dir()
+    # prepare variables:
+    MainObj.prepare_vars()
     # set parallel jobs number:
     MainObj.parallel_job_numbers = 10
     # do parallel calculation with a pathos multiprocessing tool

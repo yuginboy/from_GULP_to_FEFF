@@ -5,6 +5,7 @@ import progressbar
 # import
 from libs.classes import Unitcell
 from feff.mainFEFF import feffCalcFun
+from feff_calc_from_inp_parallel import FEFF_parallel_calculation_class
 
 limitNumOfSnapshots = 1e6
 
@@ -164,10 +165,21 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
 
     if doWriteFEFFinp:
         print('Start FEFF simulations')
-        feffCalcFun(dataPath = atomInSnapshot.outDirFEFF,
-                tmpPath=atomInSnapshot.outDirFEFFtmp,
-                outDirPath=atomInSnapshot.outDirFEFFCalc,
-                plotTheData = True)
+        if parallel_job_numbers < 2:
+            feffCalcFun(dataPath = atomInSnapshot.outDirFEFF,
+                    tmpPath=atomInSnapshot.outDirFEFFtmp,
+                    outDirPath=atomInSnapshot.outDirFEFFCalc,
+                    plotTheData = True)
+        else:
+            MainObj = FEFF_parallel_calculation_class()
+            # load inp dir name:
+            MainObj.dirNameInp = atomInSnapshot.outDirFEFF
+            # prepare vars:
+            MainObj.prepare_vars()
+            # set parallel jobs number:
+            MainObj.parallel_job_numbers = int(parallel_job_numbers)
+            # do parallel calculation with a pathos multiprocessing tool
+            MainObj.start_parallel_calculations()
 
     #calculation average input coordinates and stndart deviation
     atomInSnapshot.outNameAverFeffInp = os.path.basename(file.name).split('.')[0]+'_aver'

@@ -80,6 +80,8 @@ class FEFF_calculation_class():
             a.saveLastUsedDirPath()
 
         self.dirNameInp = dir_path
+
+    def prepare_vars(self):
         self.list_of_inp_files = listOfFilesFN_with_selected_ext(self.dirNameInp, ext='inp')
         self.dirNameOut = create_out_data_folder(main_folder_path=os.path.split(os.path.normpath(self.dirNameInp))[0],
                                first_part_of_folder_name='feff_')
@@ -303,4 +305,5 @@ if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
     obj = FEFF_calculation_class()
     obj.get_working_dir()
+    obj.prepare_vars()
     obj.do_calculation_serial(list_of_inp_files=obj.list_of_inp_files[0:10])
