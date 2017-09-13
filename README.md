@@ -7,4 +7,6 @@
 1. Calculate the linear compositions in k and r spaces between serial snapshots [from all snapshots]
 2. Calculate the R-factros
 3. Find the minimum R-factor snapshots composition
+4. Compare 2 and 3 models with experiment and find best linear combination between these models. (Ex. model A - monomer, model B - dimer, result best fit: 0.75*monomer+0.25*dimer)
+
 
