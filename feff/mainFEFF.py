@@ -52,6 +52,11 @@ import multiprocessing
 #   for p in proc:
 #     p.join()
 
+def touch(path):
+    '''create empty file'''
+    with open(path, 'a'):
+        os.utime(path, None)
+
 def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath = '/home/yugin/VirtualboxShare/FEFF/tmp',
                 outDirPath = '/home/yugin/VirtualboxShare/FEFF/out', plotTheData = True):
     # Please, change only the load data (input) directory name!
@@ -199,7 +204,16 @@ def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath 
                     if plotTheData:
                         plotData(x = k, y = chi_mean, error = chi_std, numOfIter = i, out_dir = result_dir, case = folder_name + f'_from_{shift}_to_{i}]',
                                 y_median= chi_median, y_max=chi_max, y_min=chi_min)
-        i+=1
+        else:
+            # if chi.dat is absent
+            print('create the chi_%05d.error file  ->' % (i + 1))
+            # create a new name to the chi.dat output file:
+            # chiOutName = "chi_%05d.dat" %(i)
+            chiOutName = 'chi_' + currentFileName + "_%05d.error" % (i + 1)
+            touch(os.path.join(outDirPath, chiOutName))
+            print('feff calculation was crushed')
+
+        i += 1
 
     chi_std    = np.std(chi[:, :], axis=1)
     chi_mean   = np.mean(chi[:, :], axis=1)
