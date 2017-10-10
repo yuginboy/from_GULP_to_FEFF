@@ -224,8 +224,11 @@ class Spectrum (object):
             # region for R(chi)-factor calculation in Angstroms^-1:
             self.r_factor_region_chi_k = np.array([3.5, 11.5])
 
-    def plotOneSpectrum_chi_k(self):
-        plt.plot(self.k_vector, self.chi_vector, lw=2, label=self.label_latex)
+    def plotOneSpectrum_chi_k(self, line_width=2, alpha=1.0, isLabel=True):
+        if isLabel:
+            plt.plot(self.k_vector, self.chi_vector, lw=line_width, alpha=alpha, label=self.label_latex)
+        else:
+            plt.plot(self.k_vector, self.chi_vector, lw=line_width, alpha=alpha, label=None)
         plt.ylabel('$\chi(k)$', fontsize=20, fontweight='bold')
         plt.xlabel('$k$ $[\AA^{-1}]$', fontsize=20, fontweight='bold')
 
@@ -238,8 +241,11 @@ class Spectrum (object):
         plt.ylabel('$\chi(k)$', fontsize=20, fontweight='bold')
         plt.xlabel('$k$ $[\AA^{-1}]$', fontsize=20, fontweight='bold')
 
-    def plotOneSpectrum_FTR_r(self):
-        plt.plot(self.r_vector, self.ftr_vector, lw=2, label=self.label_latex)
+    def plotOneSpectrum_FTR_r(self, line_width=2, alpha=1.0, isLabel=True):
+        if isLabel:
+            plt.plot(self.r_vector, self.ftr_vector, lw=line_width, alpha=alpha, label=self.label_latex)
+        else:
+            plt.plot(self.r_vector, self.ftr_vector, lw=line_width, alpha=alpha, label=None)
         plt.ylabel('$FT(r)$', fontsize=20, fontweight='bold')
         plt.xlabel('$r$ $[\AA]$', fontsize=20, fontweight='bold')
 

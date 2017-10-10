@@ -40,15 +40,24 @@ class SimpleSpectrum():
         self.r_vector = ftr_out[0]
         self.ftr_vector = ftr_out[2]
 
-    def plotOneSpectrum_chi_k(self):
-        plt.plot(self.k_vector, self.chi_vector, lw=2, label=self.label_latex)
-        plt.plot(self.k_vector, ftwindow(self.k_vector, user=self.user), lw=2, label=f'window: {self.user}')
+    def plotOneSpectrum_chi_k(self, line_width=2, alpha=1.0, isLabel=True):
+        if isLabel:
+            plt.plot(self.k_vector, self.chi_vector, lw=line_width, label=self.label_latex, alpha=alpha)
+            plt.plot(self.k_vector, ftwindow(self.k_vector, user=self.user), lw=line_width, label=f'window: {self.user}', alpha=alpha)
+
+        else:
+            plt.plot(self.k_vector, self.chi_vector, lw=line_width, label=None, alpha=alpha)
+            plt.plot(self.k_vector, ftwindow(self.k_vector, user=self.user), lw=line_width, label=None, alpha=alpha)
 
         plt.ylabel('$\chi(k)$', fontsize=20, fontweight='bold')
         plt.xlabel('$k$ $[\AA^{-1}]$', fontsize=20, fontweight='bold')
 
-    def plotOneSpectrum_FTR_r(self):
-        plt.plot(self.r_vector, self.ftr_vector, lw=2, label=self.label_latex)
+    def plotOneSpectrum_FTR_r(self, line_width=2, alpha=1.0, isLabel=True):
+        if isLabel:
+            plt.plot(self.r_vector, self.ftr_vector, lw=line_width, label=self.label_latex, alpha=alpha)
+        else:
+            plt.plot(self.r_vector, self.ftr_vector, lw=line_width, label=None, alpha=alpha)
+
         plt.ylabel('$FT(r)$', fontsize=20, fontweight='bold')
         plt.xlabel('$r$ $[\AA]$', fontsize=20, fontweight='bold')
 

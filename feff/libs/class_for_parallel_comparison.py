@@ -7,6 +7,7 @@
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
 import os
 import datetime
+from collections import OrderedDict as odict
 from timeit import default_timer as timer
 import copy
 from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
@@ -48,7 +49,7 @@ class Model_for_spectra():
         self.setOfSnapshotSpectra = SpectraSet()
 
         # create dict for store all snapshots in path:
-        self.dictOfAllSnapshotsInDirectory = {}
+        self.dictOfAllSnapshotsInDirectory = odict()
 
     def get_Model_name(self):
         path = os.path.join(self.projectWorkingFEFFoutDirectory, self.listOfSnapshotFiles[0])
@@ -1711,7 +1712,7 @@ class FTR_gulp_to_feff_A_model_base():
         # --------------------------------------------------------------
         currentSerialSnapNumber = 0
         number = 0
-        result_dict = {}
+        result_dict = odict()
 
         for filePath in self.listOfSnapshotFiles:
             # print('==> file is: {0}'.format(filePath))
@@ -1810,7 +1811,7 @@ class FTR_gulp_to_feff_A_model_base():
                 currentSetOfSpectra = copy.deepcopy(self.setOfSnapshotSpectra)
 
                 # add object to the dict:
-                result_dict[number] = dict({'data': currentSetOfSpectra})
+                result_dict[number] = odict({'data': currentSetOfSpectra})
 
                 #     flush Dict of Set of TWO models results:
                 self.setOfSnapshotSpectra.flushDictOfSpectra()
@@ -1843,7 +1844,7 @@ if __name__ == '__main__':
     a.scale_experiment_factor_FTR = 1.0
 
     #  change the user name, which parameters for xftf transformation you want to use:
-    a.user = 'PK'
+    a.user = 'ID'
     # change tha sample preparation method:
     a.sample_preparation_mode = '450'
     # if you want compare with the theoretical average, do this:

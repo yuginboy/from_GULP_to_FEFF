@@ -6,6 +6,7 @@
 '''
 from feff.libs.class_Spectrum import Spectrum
 import os
+from collections import OrderedDict as odict
 import numpy as np
 from scipy.optimize import minimize, minimize_scalar
 from scipy.optimize import differential_evolution
@@ -18,7 +19,7 @@ class SpectraSet():
     class to combine serial snapshots spectra and find the optimum
     '''
     def __init__(self):
-        self.dictOfSpectra = {}
+        self.dictOfSpectra = odict()
 
         # weights for calc tota R-factor in minimization procedure
         # (Rtot = (Rchi * w1 + Rrtf * w2) / (w1 + w2)):
@@ -77,10 +78,10 @@ class SpectraSet():
     def addSpectraToDict(self, currentSpectra):
         num = len(self.dictOfSpectra)
         if isinstance(currentSpectra, Spectrum):
-            self.dictOfSpectra[num] = dict({'data' : currentSpectra})
+            self.dictOfSpectra[num] = odict({'data': currentSpectra})
 
     def flushDictOfSpectra(self):
-        self.dictOfSpectra = {}
+        self.dictOfSpectra = odict()
 
     def funcForOptimize(self, x):
         # create function of snapshots linear composition Sum[x_i*F_i]
@@ -498,40 +499,79 @@ class SpectraSet():
 
 
     def plotSpectra_FTR_r_SimpleComposition(self):
+        if len(self.dictOfSpectra) > 4:
+            alpha = 0.2
+            line_width = 1
+            isLabel = False
+        else:
+            alpha = 1.0
+            line_width = 2
+            isLabel = True
+
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            val['data'].plotOneSpectrum_FTR_r()
+            val['data'].plotOneSpectrum_FTR_r(line_width=line_width, alpha=alpha, isLabel=isLabel)
         self.result_simple.plotTwoSpectrum_FTR_r()
         plt.title('$R_{{FT(r)}}$  = {0}'.format(round(self.get_R_factor_SimpleComposition()[1], 4)))
-        if len(self.dictOfSpectra) < 4:
-            plt.legend()
+        # if len(self.dictOfSpectra) < 4:
+        #     plt.legend()
+        plt.legend()
         plt.show()
 
 
     def plotSpectra_chi_k_SimpleComposition(self):
+        if len(self.dictOfSpectra) > 4:
+            alpha = 0.2
+            line_width = 1
+            isLabel = False
+        else:
+            alpha = 1.0
+            line_width = 2
+            isLabel = True
+
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            val['data'].plotOneSpectrum_chi_k()
+            val['data'].plotOneSpectrum_chi_k(line_width=line_width, alpha=alpha, isLabel=isLabel)
         self.result_simple.plotTwoSpectrum_chi_k()
         plt.title('$R_{{\chi(k)}}$ = {0}'.format(round(self.get_R_factor_SimpleComposition()[2], 4)))
-        if len(self.dictOfSpectra) < 4:
-            plt.legend()
+        # if len(self.dictOfSpectra) < 4:
+        #     plt.legend()
+        plt.legend()
         plt.show()
 
     def plotSpectra_FTR_r_LinearComposition(self):
+        if len(self.dictOfSpectra) > 4:
+            alpha = 0.2
+            line_width = 1
+            isLabel = False
+        else:
+            alpha = 1.0
+            line_width = 2
+            isLabel = True
+
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            val['data'].plotOneSpectrum_FTR_r()
+            val['data'].plotOneSpectrum_FTR_r(line_width=line_width, alpha=alpha, isLabel=isLabel)
         self.result.plotTwoSpectrum_FTR_r()
         plt.title('$R_{{FT(r)}}$  = {0}'.format(round(self.get_R_factor_LinearComposition()[1], 4)))
-        if len(self.dictOfSpectra) < 4:
-            plt.legend()
+        # if len(self.dictOfSpectra) < 4:
+        #     plt.legend()
+        plt.legend()
         plt.show()
 
     def plotSpectra_FTR_r_LinearComposition_FTR_from_linear_Chi_k(self):
+        if len(self.dictOfSpectra) > 4:
+            alpha = 0.2
+            line_width = 1
+            isLabel = False
+        else:
+            alpha = 1.0
+            line_width = 2
+            isLabel = True
+
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            val['data'].plotOneSpectrum_FTR_r()
+            val['data'].plotOneSpectrum_FTR_r(line_width=line_width, alpha=alpha, isLabel=isLabel)
 
         txt_coeff = '['
         txt_sep = ' ,'
@@ -544,24 +584,44 @@ class SpectraSet():
         self.result_FTR_from_linear_Chi_k.plotTwoSpectrum_FTR_r()
         plt.title('$R_{{FT(r)\leftarrow\chi(k)}}$  = {0}, k = {1}'.format(
             round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[1], 4), txt_coeff))
-        if len(self.dictOfSpectra) < 4:
-            plt.legend()
+        # if len(self.dictOfSpectra) < 4:
+        #     plt.legend()
+        plt.legend()
         plt.show()
 
     def plotSpectra_chi_k_LinearComposition(self):
+        if len(self.dictOfSpectra) > 4:
+            alpha = 0.2
+            line_width = 1
+            isLabel = False
+        else:
+            alpha = 1.0
+            line_width = 2
+            isLabel = True
+
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            val['data'].plotOneSpectrum_chi_k()
+            val['data'].plotOneSpectrum_chi_k(line_width=line_width, alpha=alpha, isLabel=isLabel)
         self.result.plotTwoSpectrum_chi_k()
         plt.title('$R_{{\chi(k)}}$ = {0}'.format(round(self.get_R_factor_LinearComposition()[2], 4)))
-        if len(self.dictOfSpectra) < 4:
-            plt.legend()
+        # if len(self.dictOfSpectra) < 4:
+        #     plt.legend()
+        plt.legend()
         plt.show()
 
     def plotSpectra_chi_k_LinearComposition_FTR_from_linear_Chi_k(self):
+        if len(self.dictOfSpectra) > 4:
+            alpha = 0.2
+            line_width = 1
+            isLabel = False
+        else:
+            alpha = 1.0
+            line_width = 2
+            isLabel = True
+
         for i in self.dictOfSpectra:
             val = self.dictOfSpectra[i]
-            val['data'].plotOneSpectrum_chi_k()
+            val['data'].plotOneSpectrum_chi_k(line_width=line_width, alpha=alpha, isLabel=isLabel)
 
         txt_coeff = '['
         txt_sep = ' ,'
@@ -574,8 +634,9 @@ class SpectraSet():
         self.result_FTR_from_linear_Chi_k.plotTwoSpectrum_chi_k()
         plt.title('$R_{{\chi(k)}}$ = {0}, k = {1}'.format(
             round(self.get_R_factor_LinearComposition_FTR_from_linear_Chi_k()[2], 4), txt_coeff))
-        if len(self.dictOfSpectra) < 4:
-            plt.legend()
+        # if len(self.dictOfSpectra) < 4:
+        #     plt.legend()
+        plt.legend()
         plt.show()
 
     def saveSpectra_LinearComposition_FTR_from_linear_Chi_k(self, output_dir=''):
