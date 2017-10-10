@@ -47,6 +47,9 @@ class SpectraSet():
         self.coefficient_vector_FTR_from_linear_Chi_k_std = []
         self.coefficient_vector_FTR_from_linear_Chi_k_s2 = []
 
+        # When the case has a big number of Mn atoms we plot the collateral (secondary) lines with an alpha parameter:
+        self.collateral_line_transparency = 0.3
+
 
 
     def set_ideal_curve_params(self):
@@ -123,13 +126,13 @@ class SpectraSet():
         return tmp_chi_vector, tmp_ftr_vector
 
     def calcSimpleSpectraComposition(self):
-        # only calc the mean of spectra
+        # only calc the mean of spectra in Chi-space and then do xftf for obtaining FTR in R-space
         num = len(self.dictOfSpectra)
         x0 = np.ones(num)
         tmp_chi_vector, tmp_ftr_vector = self.funcForOptimize(x0)
-
         self.result_simple.chi_vector = tmp_chi_vector
-        self.result_simple.ftr_vector = tmp_ftr_vector
+        tmp_chi_vector, tmp_ftr_vector = self.func_FTR_from_linear_Chi_k(x0)
+        self.result_simple.ftr_vector = tmp_ftr_vector * self.result_simple.scale_theory_factor_FTR
         self.coefficient_vector = x0/np.sum(x0)
 
     def calcLinearSpectraComposition(self, method='differential_evolution'):
@@ -500,7 +503,7 @@ class SpectraSet():
 
     def plotSpectra_FTR_r_SimpleComposition(self):
         if len(self.dictOfSpectra) > 4:
-            alpha = 0.2
+            alpha = self.collateral_line_transparency
             line_width = 1
             isLabel = False
         else:
@@ -521,7 +524,7 @@ class SpectraSet():
 
     def plotSpectra_chi_k_SimpleComposition(self):
         if len(self.dictOfSpectra) > 4:
-            alpha = 0.2
+            alpha = self.collateral_line_transparency
             line_width = 1
             isLabel = False
         else:
@@ -541,7 +544,7 @@ class SpectraSet():
 
     def plotSpectra_FTR_r_LinearComposition(self):
         if len(self.dictOfSpectra) > 4:
-            alpha = 0.2
+            alpha = self.collateral_line_transparency
             line_width = 1
             isLabel = False
         else:
@@ -561,7 +564,7 @@ class SpectraSet():
 
     def plotSpectra_FTR_r_LinearComposition_FTR_from_linear_Chi_k(self):
         if len(self.dictOfSpectra) > 4:
-            alpha = 0.2
+            alpha = self.collateral_line_transparency
             line_width = 1
             isLabel = False
         else:
@@ -591,7 +594,7 @@ class SpectraSet():
 
     def plotSpectra_chi_k_LinearComposition(self):
         if len(self.dictOfSpectra) > 4:
-            alpha = 0.2
+            alpha = self.collateral_line_transparency
             line_width = 1
             isLabel = False
         else:
@@ -611,7 +614,7 @@ class SpectraSet():
 
     def plotSpectra_chi_k_LinearComposition_FTR_from_linear_Chi_k(self):
         if len(self.dictOfSpectra) > 4:
-            alpha = 0.2
+            alpha = self.collateral_line_transparency
             line_width = 1
             isLabel = False
         else:

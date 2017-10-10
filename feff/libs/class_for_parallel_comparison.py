@@ -1831,40 +1831,17 @@ if __name__ == '__main__':
     # plt.show()
 
 
-    # # start global searching procedure:
-    # fit the sub-components of one model
-    # If Model has X-num of Mn then procedure search the weights of X-num of snapshots.
-    a = FTR_gulp_to_feff_A_model_base()
-    a.numberOfSerialEquivalentAtoms = 79
-    a.do_FTR_from_linear_Chi_k_SpectraComposition = False
-    a.find_min_Rtot_in_single_snapshot = False
-    a.weight_R_factor_FTR = 1.0
-    a.weight_R_factor_chi = 0.0
-    a.scale_theory_factor_FTR = 0.81
-    a.scale_experiment_factor_FTR = 1.0
-
-    #  change the user name, which parameters for xftf transformation you want to use:
-    a.user = 'ID'
-    # change tha sample preparation method:
-    a.sample_preparation_mode = '450'
-    # if you want compare with the theoretical average, do this:
-    # a.calcAllSnapshotFiles()
-    #  if you want to find the minimum from the all snapshots do this:
-    a.calcAllSnapshotFiles_temperature()
-    # if you want to check only one snapshot do this:
-    # a.calcSelectedSnapshotFile()
-
-
-    # # start global search of Two-model combination:
+    # # # start global searching procedure:
+    # # fit the sub-components of one model
+    # # If Model has X-num of Mn then procedure search the weights of X-num of snapshots.
     # a = FTR_gulp_to_feff_A_model_base()
+    # a.numberOfSerialEquivalentAtoms = 79
+    # a.do_FTR_from_linear_Chi_k_SpectraComposition = False
+    # a.find_min_Rtot_in_single_snapshot = False
     # a.weight_R_factor_FTR = 1.0
     # a.weight_R_factor_chi = 0.0
     # a.scale_theory_factor_FTR = 0.81
     # a.scale_experiment_factor_FTR = 1.0
-    #
-    # a.model_A.numberOfSerialEquivalentAtoms = 1
-    # a.model_B.numberOfSerialEquivalentAtoms = 2
-    # a.model_C.numberOfSerialEquivalentAtoms = 3
     #
     # #  change the user name, which parameters for xftf transformation you want to use:
     # a.user = 'ID'
@@ -1872,15 +1849,38 @@ if __name__ == '__main__':
     # a.sample_preparation_mode = '450'
     # # if you want compare with the theoretical average, do this:
     # # a.calcAllSnapshotFiles()
-    #
-    # # for debug and profiling:
-    # a.saveDataToDisk = True
-    #
     # #  if you want to find the minimum from the all snapshots do this:
-    # # a.calcAllSnapshotFilesFor_2_type_Models_single()
-    # a.calcAllSnapshotFilesFor_3_type_Models_single()
+    # a.calcAllSnapshotFiles_temperature()
     # # if you want to check only one snapshot do this:
     # # a.calcSelectedSnapshotFile()
+
+
+    # start global search of Two-model combination:
+    a = FTR_gulp_to_feff_A_model_base()
+    a.weight_R_factor_FTR = 1.0
+    a.weight_R_factor_chi = 0.0
+    a.scale_theory_factor_FTR = 0.81
+    a.scale_experiment_factor_FTR = 1.0
+
+    a.model_A.numberOfSerialEquivalentAtoms = 5
+    a.model_B.numberOfSerialEquivalentAtoms = 2
+    a.model_C.numberOfSerialEquivalentAtoms = 3
+
+    #  change the user name, which parameters for xftf transformation you want to use:
+    a.user = 'ID'
+    # change tha sample preparation method:
+    a.sample_preparation_mode = '450'
+    # if you want compare with the theoretical average, do this:
+    # a.calcAllSnapshotFiles()
+
+    # for debug and profiling:
+    a.saveDataToDisk = True
+
+    #  if you want to find the minimum from the all snapshots do this:
+    a.calcAllSnapshotFilesFor_2_type_Models_single()
+    # a.calcAllSnapshotFilesFor_3_type_Models_single()
+    # if you want to check only one snapshot do this:
+    # a.calcSelectedSnapshotFile()
 
 
     # # start calculate only snapshot file:
