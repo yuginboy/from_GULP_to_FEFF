@@ -131,7 +131,7 @@ class SpectraSet():
         x0 = np.ones(num)
         tmp_chi_vector, tmp_ftr_vector = self.funcForOptimize(x0)
         self.result_simple.chi_vector = tmp_chi_vector
-        tmp_chi_vector, tmp_ftr_vector = self.func_FTR_from_linear_Chi_k(x0)
+        tmp_chi_vector_1, tmp_ftr_vector = self.func_FTR_from_linear_Chi_k(x0)
         self.result_simple.ftr_vector = tmp_ftr_vector * self.result_simple.scale_theory_factor_FTR
         self.coefficient_vector = x0/np.sum(x0)
 
