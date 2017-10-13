@@ -219,7 +219,7 @@ if __name__ == '__main__':
     a.scale_experiment_factor_FTR = 1.0
 
     a.model_A.numberOfSerialEquivalentAtoms = 2
-    a.model_B.numberOfSerialEquivalentAtoms = 5
+    a.model_B.numberOfSerialEquivalentAtoms = 12
 
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
@@ -231,7 +231,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 10
+    a.parallel_job_numbers = 5
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFrom_2_type_Models_parallel()

@@ -1,3 +1,10 @@
+'''
+* Created by Zhenia Syryanyy (Yevgen Syryanyy)
+* e-mail: yuginboy@gmail.com
+* License: this code is in GPL license
+* Last modified: 2017-10-13
+'''
+
 import sys
 import os
 from io import StringIO
@@ -88,6 +95,8 @@ class Struct:
         self.Hmax = 0
         self.J_total_momentum = 2.5
         self.Mn_type = 'Mn2+' # Mn2+ or Mn3+
+        self.spin_type_cfg = 'high' # low or high
+        self.g_factor = g_e
 
 
 
@@ -134,11 +143,20 @@ class Struct:
         # 5.916, 3d4 4s0, 4 unpaired e-, observed: 4.8 - 4.9 in [muB]
         # self.mu_spin_only = np.sqrt(4*(4+2))
         if self.Mn_type == 'Mn2+':
-            self.J_total_momentum = 2.5 # high spin
+            if self.spin_type_cfg == 'high':
+                self.J_total_momentum = 2.5 # high spin
+            elif self.spin_type_cfg == 'low':
+                self.J_total_momentum = 1.5 # low spin ?
             self.mu_eff = g_J_Mn2_plus
+
         elif self.Mn_type == 'Mn3+':
-            self.J_total_momentum = 2 # low-spin
+            if self.spin_type_cfg == 'low':
+                self.J_total_momentum = 2 # ? low-spin, probably because mu_eff is 4.82 from the experiment
+            elif self.spin_type_cfg == 'high':
+                self.J_total_momentum = 0 # high-spin
             self.mu_eff = g_J_Mn3_plus
+
+        self.g_factor = self.mu_eff / self.J_total_momentum
 
     def interpolate(self):
 

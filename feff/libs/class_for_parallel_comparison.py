@@ -1835,7 +1835,7 @@ if __name__ == '__main__':
     # fit the sub-components of one model
     # If Model has X-num of Mn then procedure search the weights of X-num of snapshots.
     a = FTR_gulp_to_feff_A_model_base()
-    a.numberOfSerialEquivalentAtoms = 79
+    a.numberOfSerialEquivalentAtoms = 9
     a.do_FTR_from_linear_Chi_k_SpectraComposition = False
     a.find_min_Rtot_in_single_snapshot = False
     a.weight_R_factor_FTR = 1.0
