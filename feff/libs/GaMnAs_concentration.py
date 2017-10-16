@@ -463,7 +463,7 @@ class ConcentrationOfMagneticIons:
             M_for_fit = np.copy(M)
 
             if abs(self.struct_of_data[self.diff_PM_keyName1].Hmin) == self.struct_of_data[self.diff_PM_keyName1].Hmax:
-                if len(M[(B > 0)]) != len(M[(B < 0)]):
+                if len(M[np.where(B > 0)]) != len(M[np.where(B < 0)]):
                     # reduce a noise:
                     negVal = abs(np.min(B))
                     pozVal = np.max(B)
@@ -476,16 +476,16 @@ class ConcentrationOfMagneticIons:
                     eps = 0.001*abs(abs(B[0])-abs(B[1]))
                     B = B[np.logical_or( (np.abs(B) <= limitVal + eps), (np.abs(B) <= eps) )]
 
-                    Mp = M[(B > 0)]
-                    Mn = M[(B < 0)]
+                    Mp = M[np.where(B > 0)]
+                    Mn = M[np.where(B < 0)]
 
-                if len(M[(B > 0)]) == len(M[(B < 0)]):
+                if len(M[np.where(B > 0)]) == len(M[np.where(B < 0)]):
                     # reduce a noise:
-                    Mp = M[(B > 0)]
-                    Mn = M[(B < 0)]
+                    Mp = M[np.where(B > 0)]
+                    Mn = M[np.where(B < 0)]
 
-                M_for_fit[(B > 0)] = 0.5*(Mp + np.abs(Mn[::-1]))
-                M_for_fit[(B < 0)] = 0.5*(Mn - np.abs(Mp[::-1]))
+                M_for_fit[np.where(B > 0)] = 0.5*(Mp + np.abs(Mn[::-1]))
+                M_for_fit[np.where(B < 0)] = 0.5*(Mn - np.abs(Mp[::-1]))
                 # M_for_fit[(B > 0)] = 0.5*(Mp + np.abs(Mn))
                 # M_for_fit[(B < 0)] = 0.5*(Mn - np.abs(Mp))
 
@@ -497,7 +497,7 @@ class ConcentrationOfMagneticIons:
             condlist2 = (self.diff_PM_field_region_for_fit[1, 0] <= B) & (self.diff_PM_field_region_for_fit[1, 1] >= B)
             # fit the data:
             n, pcov = curve_fit(fun_diff, B[np.logical_or(condlist1, condlist2)],
-                                M_for_fit[np.logical_or(condlist1, condlist2)],
+                                M_for_fit[np.where(np.logical_or(condlist1, condlist2))],
                                 p0=initial_guess, bounds=([0, ], [np.inf, ]))
 
             self.n_diffPM = n[0]
@@ -515,7 +515,7 @@ class ConcentrationOfMagneticIons:
             inx_condlist = np.logical_or(condlist1, condlist2)
             inx = B.nonzero()
             self.ax.scatter(B[inx_condlist],
-                            M_for_fit[inx_condlist],
+                            M_for_fit[np.where(inx_condlist)],
                             label='region for $fit$',
                             facecolor='none',
                             alpha=.25,
@@ -674,20 +674,20 @@ class ConcentrationOfMagneticIons:
 
             M_for_fit = np.copy(M[inx_B])
 
-            Mp = M[(B > eps)]
-            Mn = M[(B < -eps)]
+            Mp = M[np.where(B > eps)]
+            Mn = M[np.where(B < -eps)]
 
-        if len(M[(B > 0)]) == len(M[(B < 0)]):
+        if len(M[np.where(B > 0)]) == len(M[np.where(B < 0)]):
             inx_B = np.logical_or((np.abs(B) <= eps), (np.abs(B) >= eps))
             B = np.copy(B[inx_B])
 
-            M_for_fit = np.copy(M[inx_B])
+            M_for_fit = np.copy(M[np.where(inx_B)])
             # reduce a noise:
-            Mp = M[(B > eps)]
-            Mn = M[(B < -eps)]
+            Mp = M[np.where(B > eps)]
+            Mn = M[np.where(B < -eps)]
 
-        M_for_fit[(B > eps)] = 0.5 * (Mp + np.abs(Mn[::-1]))
-        M_for_fit[(B < -eps)] = 0.5 * (Mn - np.abs(Mp[::-1]))
+        M_for_fit[np.where(B > eps)] = 0.5 * (Mp + np.abs(Mn[::-1]))
+        M_for_fit[np.where(B < -eps)] = 0.5 * (Mn - np.abs(Mp[::-1]))
             # M_for_fit[(B > 0)] = 0.5*(Mp + np.abs(Mn))
             # M_for_fit[(B < 0)] = 0.5*(Mn - np.abs(Mp))
 
@@ -702,7 +702,7 @@ class ConcentrationOfMagneticIons:
         initial_guess = [0.01, 2, ]
         # fit the data:
         pres, pcov = curve_fit(fun_fit, B[np.logical_or(condlist1, condlist1)],
-                            M_for_fit[np.logical_or(condlist1, condlist1)],
+                            M_for_fit[np.where(np.logical_or(condlist1, condlist1))],
                             p0=initial_guess,
                             bounds=([0, 0, ], [np.inf, np.inf, ]))
 
@@ -723,7 +723,7 @@ class ConcentrationOfMagneticIons:
 
 
         self.ax.scatter(B[np.logical_or(condlist1, condlist1)],
-                        M_for_fit[np.logical_or(condlist1, condlist1)],
+                        M_for_fit[np.where(np.logical_or(condlist1, condlist1))],
                         label='region for $fit$',
                         facecolor='none',
                         alpha=.1,
@@ -740,7 +740,7 @@ class ConcentrationOfMagneticIons:
                      .format(self.n_diffPM/22.139136*100, 1, T, )+\
                            ', $n_{{[PM,\;x={0:1.3g}\%]}}={1:1.3g}\%$'.format(self.how_many_Mn_in_percent,
                             self.n_diffPM / 22.139136 * 100/self.how_many_Mn_in_percent*100))
-        self.ax.scatter(B, M[inx_B],  label='$raw$', alpha=.2, color='g')
+        self.ax.scatter(B, M[np.where(inx_B)],  label='$raw$', alpha=.2, color='g')
         self.ax.scatter(B, M_for_fit, label='set for $fit$, $\\frac{{\left(M_++M_-\\right)}}{{2}} - PM(T={0:1.2g}K)$'.format(T), color='k', alpha=.2)
         self.ax.plot(B, 10*(M_for_fit - fun_fit(B, self.n_SPM, self.J_SPM)), 'k.', label='residuals $10*(raw - fit)$')
 
