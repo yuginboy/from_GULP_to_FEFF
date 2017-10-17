@@ -7,6 +7,7 @@
 
 import sys
 import os
+from copy import deepcopy
 from io import StringIO
 import inspect
 import numpy as np
@@ -76,38 +77,41 @@ def number_density(rho = rho_GaAs, M = mass_Molar_kg_GaAs):
     # return concentration from Molar mass
     return Navagadro*rho/M
 
+class Magnetic_Data:
+    def __init__(self):
+        self.magnetic_field = []
+        self.magnetic_moment = []
+        self.label = []
+        self.temperature = []
+        self.magnetic_field_shift = []
+        self.magnetic_moment_shift = []
 
-
-
-
-class Struct:
+class Struct_base:
     '''
     Describe structure for a data
     '''
     def __init__(self):
-        self.H = []
-        self.M = []
-        self.Mraw = [] # raw data
-        self.T = 2
-        self.H_inflection = 30
-        self.Hstep = 0.1 #[T]
-        self.Hmin = 0
-        self.Hmax = 0
+        self.raw = Magnetic_Data()
+        self.prepared_raw = Magnetic_Data()
+        self.fit = Magnetic_Data()
+
+        self.magnetic_field_inflection_point = 30
+        self.magnetic_field_step = 0.1 #[T]
+        self.magnetic_field_minimum = 0
+        self.magnetic_field_maximum = 0
         self.J_total_momentum = 2.5
         self.Mn_type = 'Mn2+' # Mn2+ or Mn3+
         self.spin_type_cfg = 'high' # low or high
         self.g_factor = g_e
-
-
-
+        self.mu_eff = g_J_Mn2_plus
         self.volumeOfTheFilm_GaMnAs = 0 #[m^3]
-        self.yy_fit = []
+        self.fit.magnetic_moment = []
         self.forFit_y = []
         self.forFit_x = []
         self.zeroIndex = []
 
         # number of density for PM fit only for the current temperature:
-        self.n_PM = 0
+        self.concentration_ParaMagnetic = 0
 
 
         # corrections for curve:
@@ -124,6 +128,10 @@ class Struct:
         # 'Cubic'
         # 'Linear'
         self.typeOfFiltering = 'IUS'
+
+        self.R_factor = 100
+
+        self.label_summary = ''
 
     def define_Mn_type_variables(self):
         '''
@@ -151,120 +159,148 @@ class Struct:
 
         elif self.Mn_type == 'Mn3+':
             if self.spin_type_cfg == 'low':
-                self.J_total_momentum = 2 # ? low-spin, probably because mu_eff is 4.82 from the experiment
+                self.J_total_momentum = 2.0 # ? low-spin, probably because mu_eff is 4.82 from the experiment
             elif self.spin_type_cfg == 'high':
-                self.J_total_momentum = 0 # high-spin
+                self.J_total_momentum = 0.0 # high-spin
             self.mu_eff = g_J_Mn3_plus
 
         self.g_factor = self.mu_eff / self.J_total_momentum
 
-    def interpolate(self):
+    def interpolate_data(self):
 
-        if self.Hmin == self.Hmax:
-            self.Hmin = np.fix(10*self.H.min())/10
-            self.Hmax = np.fix(10*self.H.max())/10
+        x = np.array(self.raw.magnetic_field)
+        y = np.array(self.raw.magnetic_moment)
 
-        if self.Hmin < self.H.min():
-            self.Hmin = np.fix(10*self.H.min())/10
+        if self.magnetic_field_minimum == self.magnetic_field_maximum:
+            self.magnetic_field_minimum = np.fix(10 * self.raw.magnetic_field.min()) / 10
+            self.magnetic_field_maximum = np.fix(10 * self.raw.magnetic_field.max()) / 10
 
-        if self.Hmax > self.H.max():
-            self.Hmax = np.fix(10*self.H.max())/10
+        if self.magnetic_field_minimum < self.raw.magnetic_field.min():
+            self.magnetic_field_minimum = np.fix(10 * self.raw.magnetic_field.min()) / 10
 
-        self.xx = np.r_[self.Hmin: self.Hmax: self.Hstep]
-        x = np.array(self.H)
-        y = np.array(self.M)
+        if self.magnetic_field_maximum > self.raw.magnetic_field.max():
+            self.magnetic_field_maximum = np.fix(10 * self.raw.magnetic_field.max()) / 10
+
+        self.fit.magnetic_field = \
+            np.r_[self.magnetic_field_minimum: self.magnetic_field_maximum: self.magnetic_field_step]
+
+
 
         if self.typeOfFiltering == 'Linear':
-            f = interp1d(self.H, self.M)
-            self.yy = f(self.xx)
+            f = interp1d(self.raw.magnetic_field, self.raw.magnetic_moment)
+            self.fit.magnetic_moment = f(self.fit.magnetic_field)
         if self.typeOfFiltering == 'Cubic':
-            f = interp1d(self.H, self.M, kind='cubic')
-            self.yy = f(self.xx)
+            f = interp1d(self.raw.magnetic_field, self.raw.magnetic_moment, kind='cubic')
+            self.fit.magnetic_moment = f(self.fit.magnetic_field)
         if self.typeOfFiltering == 'Spline':
             tck = splrep(x, y, s=0)
-            self.yy = splev(self.xx, tck, der=0)
+            self.fit.magnetic_moment = splev(self.fit.magnetic_field, tck, der=0)
         if self.typeOfFiltering == 'IUS':
-            f = InterpolatedUnivariateSpline(self.H, self.M)
-            self.yy = f(self.xx)
+            f = InterpolatedUnivariateSpline(self.raw.magnetic_field, self.raw.magnetic_moment)
+            self.fit.magnetic_moment = f(self.fit.magnetic_field)
         if self.typeOfFiltering == 'RBF':
-            f = Rbf(self.H, self.M, function = 'linear')
-            self.yy = f(self.xx)
+            f = Rbf(self.raw.magnetic_field, self.raw.magnetic_moment, function = 'linear')
+            self.fit.magnetic_moment = f(self.fit.magnetic_field)
 
-        if abs(self.Hmin) == abs(self.Hmax):
-            self.y_shift = self.yy[-1] - abs(self.yy[0])
-            self.yy = self.yy - self.y_shift
+        if abs(self.magnetic_field_minimum) == abs(self.magnetic_field_maximum):
+            self.y_shift = self.fit.magnetic_moment[-1] - abs(self.fit.magnetic_moment[0])
+            self.fit.magnetic_moment = self.fit.magnetic_moment - self.y_shift
+            self.fit.magnetic_moment_shift = self.y_shift
 
-            yy_0 = np.r_[0:self.yy[-1]:self.yy[-1]/100]
-            f_0 = interp1d(self.yy, self.xx)
+            yy_0 = np.r_[0:self.fit.magnetic_moment[-1]:self.fit.magnetic_moment[-1]/100]
+            f_0 = interp1d(self.fit.magnetic_moment, self.fit.magnetic_field)
             xx_0 = f_0(yy_0)
 
             self.x_shift = xx_0[0]
-            self.xx = self.xx - self.x_shift
+            self.fit.magnetic_field = self.fit.magnetic_field - self.x_shift
+            self.fit.magnetic_field_shift = self.x_shift
 
 
-        # we need to adjust new self.xx values to a good precision:
-        if self.Hmin < self.xx.min():
-            self.Hmin = np.fix(10*self.xx.min())/10
+        # we need to adjust new self.fit.magnetic_field values to a good precision:
+        if self.magnetic_field_minimum < self.fit.magnetic_field.min():
+            self.magnetic_field_minimum = np.fix(10 * self.fit.magnetic_field.min()) / 10
 
-        if self.Hmax > self.xx.max():
-            self.Hmax = np.fix(10*self.xx.max())/10
+        if self.magnetic_field_maximum > self.fit.magnetic_field.max():
+            self.magnetic_field_maximum = np.fix(10 * self.fit.magnetic_field.max()) / 10
 
-        xx = np.r_[self.Hmin: self.Hmax: self.Hstep]
-        self.zeroIndex = np.nonzero((np.abs(xx) < self.Hstep*1e-2))
+        xx = np.r_[self.magnetic_field_minimum: self.magnetic_field_maximum: self.magnetic_field_step]
+        self.zeroIndex = np.nonzero((np.abs(xx) < self.magnetic_field_step*1e-2))
         xx[self.zeroIndex] = 0
-        f = interp1d(self.xx, self.yy)
-        self.yy = f(xx)
-        self.xx = xx
+        f = interp1d(self.fit.magnetic_field, self.fit.magnetic_moment)
+        self.fit.magnetic_moment = f(xx)
+        self.fit.magnetic_field = xx
 
-
-
+        # store interpolated data of raw data in spacial object:
+        self.prepared_raw = deepcopy(self.fit)
 
 
     def filtering(self):
         # do some filtering operations under data:
-        if self.Hmin == self.Hmax:
-            self.Hmin = self.H.min()
-            self.Hmax = self.H.max()
-        self.xx = np.r_[self.Hmin: self.Hmax: self.Hstep]
+        if self.magnetic_field_minimum == self.magnetic_field_maximum:
+            self.magnetic_field_minimum = self.raw.magnetic_field.min()
+            self.magnetic_field_maximum = self.raw.magnetic_field.max()
+        self.fit.magnetic_field = np.r_[self.magnetic_field_minimum: self.magnetic_field_maximum: self.magnetic_field_step]
         window_size, poly_order = 101, 3
-        self.yy = savgol_filter(self.yy, window_size, poly_order)
+        self.fit.magnetic_moment = savgol_filter(self.fit.magnetic_moment, window_size, poly_order)
 
-    def fit_PM(self):
+    def fit_PM_single_phase(self):
         # do a fit procedure:
-        # indx = np.argwhere(self.xx >= 3)
-        indx = (self.xx >= 3)
-        B = self.xx[indx]
-        M = self.yy[indx]
-        self.forFit_x = (g_e * self.J_total_momentum * mu_Bohr * B) / k_b / self.T
+        # indx = np.argwhere(self.fit.magnetic_field >= 3)
+        indx = (self.fit.magnetic_field >= 3)
+        B = self.fit.magnetic_field[indx]
+        M = self.fit.magnetic_moment[indx]
+        self.forFit_x = (self.g_factor * self.J_total_momentum * mu_Bohr * B) / k_b / self.raw.temperature
         self.forFit_y = M
         n = return_fit_param(self.forFit_x, self.forFit_y) # [1/m^3*1e27]
 
         # try to fit by using 2 params: n and J
         # initial_guess = [0.01, 2.5]
-        # popt, pcov = curve_fit(f_PM, (g_e*self.J*mu_Bohr*self.xx[(self.xx >= 0)])/k_b/self.T, self.yy[(self.xx >= 0)],
-        #                        p0= initial_guess, bounds=([0, 0], [np.inf, np.inf]))
-        # yy = f_PM((g_e*self.J*mu_Bohr*self.xx)/k_b/self.T, popt[0], popt[1])
+        def fun_tmp(x, n):
+            return f_PM(x, n, J=self.J_total_momentum, g_factor=self.g_factor)
+
+        popt, pcov = curve_fit(fun_tmp,
+                               xdata=self.forFit_x,
+                               ydata=self.forFit_y)
+        xx = (self.g_factor*self.J_total_momentum*mu_Bohr*self.fit.magnetic_field)/k_b/self.raw.temperature
+        # yy = f_PM(xx, popt[0], J=self.J_total_momentum, g_factor=self.g_factor)
 
         # plt.plot(B, func(self.forFit_x, n), 'r-', B, M, '.-')
 
-        self.yy_fit = func((g_e * self.J_total_momentum * mu_Bohr * self.xx) / k_b / self.T, n)
+        self.fit.magnetic_moment = func(xx, n)
+        self.fit.magnetic_moment[self.zeroIndex] = 0
+        self.calc_R_factor(raw=self.fit.magnetic_moment, fit=self.fit.magnetic_moment)
+        self.yy_fit_label = 'fit [$R={R:1.3}$]: $g_{{factor}}={g_f:1.3}$, $J({Mn_type}$, ${spin_type})={J:1.3}[\mu_{{Bohr}}]$'.format(
+            g_f=self.g_factor,
+            R=self.R_factor,
+            Mn_type=self.Mn_type,
+            spin_type=self.spin_type_cfg,
+            J=self.J_total_momentum
+        )
 
-        self.yy_fit[self.zeroIndex] = 0
 
-        # plt.plot(self.xx, self.yy_fit, 'r-', self.xx, self.yy, '.-', self.xx, yy, 'x')
+
+        plt.plot(self.fit.magnetic_field, self.fit.magnetic_moment, 'r-', label=self.yy_fit_label)
+        plt.plot(self.fit.magnetic_field, self.fit.magnetic_moment, '.-', label='RAW')
+        # plt.plot(self.fit.magnetic_field, yy, 'x', label='yy')
+        plt.legend()
 
         self.n_PM = n[0]
-        print('->> fit PM have been done. For T = {0} K obtained n = {1:1.3g} *1e27 [1/m^3] or {2:1.3g} % of the n(GaAs)'\
-              .format(self.T, self.n_PM, self.n_PM/22.139136*100))
+        print('->> fit PM (single PM phase) have been done. For T = {0} K obtained n = {1:1.3g} *1e27 [1/m^3] or {2:1.3g} % of the n(GaAs)'\
+              .format(self.raw.temperature,
+                      self.n_PM,
+                      self.n_PM/22.139136*100))
+        print('->> R = {R_f:1.5g}'.format(R_f=self.R_factor))
+        print('->> J[{Mn_type}, {spin_type}] = {J:1.3} [mu(Bohr)]'.format(
+            Mn_type=self.Mn_type,
+            spin_type=self.spin_type_cfg,
+            J=self.J_total_momentum))
         self.fitWasDone = True
 
-
-
     def plot(self, ax):
-        ax.plot(self.xx, self.yy, 'k-', label='T={0}K {1}'.format(self.T, self.typeOfFiltering))
-        ax.plot(self.H, self.M, 'x', label='T={0}K raw'.format(self.T))
+        ax.plot(self.fit.magnetic_field, self.fit.magnetic_moment, 'k-', label='T={0}K {1}'.format(self.raw.temperature, self.typeOfFiltering))
+        ax.plot(self.raw.magnetic_field, self.raw.magnetic_moment, 'x', label='T={0}K raw'.format(self.raw.temperature))
         if self.fitWasDone:
-            ax.plot(self.xx, self.yy_fit,  'r-', label='T={0}K fit_PM'.format(self.T))
+            ax.plot(self.fit.magnetic_field, self.fit.magnetic_moment,  'r-', label='T={0}K fit_PM_single_phase'.format(self.raw.temperature))
         ax.set_ylabel('$Moment (A/m)$', fontsize=20, fontweight='bold')
         ax.set_xlabel('$B (T)$', fontsize=20, fontweight='bold')
         ax.grid(True)
@@ -272,21 +308,32 @@ class Struct:
         #                 alpha=0.2, edgecolor='#1B2ACC', facecolor='#089FFF',
         #                 linewidth=4, linestyle='dashdot', antialiased=True, label='$\chi(k)$')
 
+    def plot_data_fit_only(self, ax=plt.gca()):
+        ax.plot(self.fit.magnetic_field, self.fit.magnetic_moment,  'r-', label='T={0}K fit_PM_single_phase'.format(self.raw.temperature))
+
     def plotLogT(self, ax, H1 = 10, H2 = 300):
         # Plot graph log(1/rho) vs 1/T to define the range with a different behavior of charge currents
-        a = self.xx
+        a = self.fit.magnetic_field
         # find indeces for elements inside the region [T1, T2]:
         ind = np.where(np.logical_and(a >= H1, a <= H2))
-        x = 1/(self.xx[ind]**1)
-        # y = np.log(self.yy[ind])
-        y = self.yy[ind]**(-1)
-        ax.plot(x, y, 'o-', label='T={0}K'.format(self.T))
+        x = 1/(self.fit.magnetic_field[ind]**1)
+        # y = np.log(self.fit.magnetic_moment[ind])
+        y = self.fit.magnetic_moment[ind]**(-1)
+        ax.plot(x, y, 'o-', label='T={0}K'.format(self.raw.temperature))
         # ax.set_ylabel('$ln(1/\\rho)$', fontsize=20, fontweight='bold')
         ax.set_ylabel('$(\sigma)$', fontsize=20, fontweight='bold')
         ax.set_xlabel('$1/T^{1}$', fontsize=20, fontweight='bold')
         ax.grid(True)
 
+    def calc_R_factor(self, raw=[], fit=[]):
+        # eval R-factor
+        denominator = np.sum(np.abs(raw))
+        if (len(raw) == len(fit)) and (denominator != 0):
+            self.R_factor = 100 * np.sum(np.abs(raw - fit))/denominator
 
+class Struct_complex:
+    def __init__(self):
+        self.source = Magnetic_Data()
 
 
 
@@ -298,7 +345,6 @@ m_B180a = 17.2 #mg
 
 t = np.array([14.3, 12.2, 13.5, 17.2])*1e-6/(1.5e-3*5e-3*rho_GaAs)
 # to = t.mean()*1000 #mm
-
 
 class ConcentrationOfMagneticIons:
     def __init__(self):
@@ -411,14 +457,14 @@ class ConcentrationOfMagneticIons:
             tmp_data = sortMatrixByFirstColumn(Array = fromRowToColumn(tmp_data), colnum = 0)
             case_name = re.findall('[\d\.\d]+', os.path.basename(i).split('.')[0])
             # create a new instance for each iteration step otherwise struct_of_data has one object for all keys
-            data = Struct()
+            data = Struct_base()
             data.T = float(case_name[0])
             data.H = tmp_data[:, 0]/10000 #[T]
             data.Mraw = tmp_data[:, 1]
             data.M = from_EMU_cm3_to_A_by_m(moment_emu = data.Mraw, V_cm3 = self.volumeOfTheFilm_GaMnAs*1e6)
 
-            data.Hmin = self.Hmin
-            data.Hmax = self.Hmax
+            data.magnetic_field_minimum = self.Hmin
+            data.magnetic_field_maximum = self.Hmax
             data.volumeOfTheFilm_GaMnAs = self.volumeOfTheFilm_GaMnAs
 
             # 'IUS' - Interpolation using univariate spline
@@ -428,8 +474,30 @@ class ConcentrationOfMagneticIons:
             # 'Cubic'
             # 'Linear'
             data.typeOfFiltering = 'Linear'
-            data.interpolate()
-            data.fit_PM()
+            data.interpolate_data()
+
+            plt.figure()
+            data.fit_PM_single_phase()
+            plt.figure()
+
+            data.Mn_type = 'Mn2+'
+            data.spin_type_cfg = 'high'
+            data.define_Mn_type_variables()
+            data.fit_PM_single_phase()
+            plt.figure()
+
+            data.Mn_type = 'Mn2+'
+            data.spin_type_cfg = 'low'
+            data.define_Mn_type_variables()
+            data.fit_PM_single_phase()
+            plt.figure()
+
+            data.Mn_type = 'Mn3+'
+            data.spin_type_cfg = 'low'
+            data.define_Mn_type_variables()
+            data.fit_PM_single_phase()
+
+
 
             data.plot(self.ax)
             plt.draw()
@@ -481,7 +549,7 @@ class ConcentrationOfMagneticIons:
             M_for_fit = np.copy(M)
 
             if abs(self.struct_of_data[self.diff_PM_keyName1].Hmin) == self.struct_of_data[self.diff_PM_keyName1].Hmax:
-                if len(M[(B > 0)]) != len(M[(B < 0)]):
+                if len(M[np.where(B > 0)]) != len(M[np.where(B < 0)]):
                     # reduce a noise:
                     negVal = abs(np.min(B))
                     pozVal = np.max(B)
@@ -494,28 +562,28 @@ class ConcentrationOfMagneticIons:
                     eps = 0.001*abs(abs(B[0])-abs(B[1]))
                     B = B[np.logical_or( (np.abs(B) <= limitVal + eps), (np.abs(B) <= eps) )]
 
-                    Mp = M[(B > 0)]
-                    Mn = M[(B < 0)]
+                    Mp = M[np.where(B > 0)]
+                    Mn = M[np.where(B < 0)]
 
-                if len(M[(B > 0)]) == len(M[(B < 0)]):
+                if len(M[np.where(B > 0)]) == len(M[np.where(B < 0)]):
                     # reduce a noise:
-                    Mp = M[(B > 0)]
-                    Mn = M[(B < 0)]
+                    Mp = M[np.where(B > 0)]
+                    Mn = M[np.where(B < 0)]
 
-                M_for_fit[(B > 0)] = 0.5*(Mp + np.abs(Mn[::-1]))
-                M_for_fit[(B < 0)] = 0.5*(Mn - np.abs(Mp[::-1]))
+                M_for_fit[np.where(B > 0)] = 0.5*(Mp + np.abs(Mn[::-1]))
+                M_for_fit[np.where(B < 0)] = 0.5*(Mn - np.abs(Mp[::-1]))
                 # M_for_fit[(B > 0)] = 0.5*(Mp + np.abs(Mn))
                 # M_for_fit[(B < 0)] = 0.5*(Mn - np.abs(Mp))
 
             if self.diff_PM_field_region_for_fit[0, 1] < B.min():
                 self.diff_PM_field_region_for_fit[0, 1] = np.fix(10*B.min())/10 + \
-                                                          5*self.struct_of_data[self.diff_PM_keyName1].Hstep
+                                                          5*self.struct_of_data[self.diff_PM_keyName1].magnetic_field_step
 
             condlist1 = (self.diff_PM_field_region_for_fit[0, 0] <= B) & (self.diff_PM_field_region_for_fit[0, 1] >= B)
             condlist2 = (self.diff_PM_field_region_for_fit[1, 0] <= B) & (self.diff_PM_field_region_for_fit[1, 1] >= B)
             # fit the data:
             n, pcov = curve_fit(fun_diff, B[np.logical_or(condlist1, condlist2)],
-                                M_for_fit[np.logical_or(condlist1, condlist2)],
+                                M_for_fit[np.where(np.logical_or(condlist1, condlist2))],
                                 p0=initial_guess, bounds=([0, ], [np.inf, ]))
 
             self.n_diffPM = n[0]
@@ -533,7 +601,7 @@ class ConcentrationOfMagneticIons:
             inx_condlist = np.logical_or(condlist1, condlist2)
             inx = B.nonzero()
             self.ax.scatter(B[inx_condlist],
-                            M_for_fit[inx_condlist],
+                            M_for_fit[np.where(inx_condlist)],
                             label='region for $fit$',
                             facecolor='none',
                             alpha=.25,
@@ -692,26 +760,26 @@ class ConcentrationOfMagneticIons:
 
             M_for_fit = np.copy(M[inx_B])
 
-            Mp = M[(B > eps)]
-            Mn = M[(B < -eps)]
+            Mp = M[np.where(B > eps)]
+            Mn = M[np.where(B < -eps)]
 
-        if len(M[(B > 0)]) == len(M[(B < 0)]):
+        if len(M[np.where(B > 0)]) == len(M[np.where(B < 0)]):
             inx_B = np.logical_or((np.abs(B) <= eps), (np.abs(B) >= eps))
             B = np.copy(B[inx_B])
 
-            M_for_fit = np.copy(M[inx_B])
+            M_for_fit = np.copy(M[np.where(inx_B)])
             # reduce a noise:
-            Mp = M[(B > eps)]
-            Mn = M[(B < -eps)]
+            Mp = M[np.where(B > eps)]
+            Mn = M[np.where(B < -eps)]
 
-        M_for_fit[(B > eps)] = 0.5 * (Mp + np.abs(Mn[::-1]))
-        M_for_fit[(B < -eps)] = 0.5 * (Mn - np.abs(Mp[::-1]))
+        M_for_fit[np.where(B > eps)] = 0.5 * (Mp + np.abs(Mn[::-1]))
+        M_for_fit[np.where(B < -eps)] = 0.5 * (Mn - np.abs(Mp[::-1]))
             # M_for_fit[(B > 0)] = 0.5*(Mp + np.abs(Mn))
             # M_for_fit[(B < 0)] = 0.5*(Mn - np.abs(Mp))
 
         if self.SPM_field_region_for_fit[0, 0] >= B.max():
             self.SPM_field_region_for_fit[0, 0] = np.fix(10 * B.max()) / 10 - \
-                                                      5 * self.struct_of_data[self.SPM_keyName].Hstep
+                                                      5 * self.struct_of_data[self.SPM_keyName].magnetic_field_step
 
         # sabtruct a PM magnetic phase which is low temperature independent:
         M_for_fit = M_for_fit - f_PM_with_T(B, n=self.n_diffPM, J=J, T=T)
@@ -720,7 +788,7 @@ class ConcentrationOfMagneticIons:
         initial_guess = [0.01, 2, ]
         # fit the data:
         pres, pcov = curve_fit(fun_fit, B[np.logical_or(condlist1, condlist1)],
-                            M_for_fit[np.logical_or(condlist1, condlist1)],
+                            M_for_fit[np.where(np.logical_or(condlist1, condlist1))],
                             p0=initial_guess,
                             bounds=([0, 0, ], [np.inf, np.inf, ]))
 
@@ -741,7 +809,7 @@ class ConcentrationOfMagneticIons:
 
 
         self.ax.scatter(B[np.logical_or(condlist1, condlist1)],
-                        M_for_fit[np.logical_or(condlist1, condlist1)],
+                        M_for_fit[np.where(np.logical_or(condlist1, condlist1))],
                         label='region for $fit$',
                         facecolor='none',
                         alpha=.1,
@@ -758,7 +826,7 @@ class ConcentrationOfMagneticIons:
                      .format(self.n_diffPM/22.139136*100, 1, T, )+\
                            ', $n_{{[PM,\;x={0:1.3g}\%]}}={1:1.3g}\%$'.format(self.how_many_Mn_in_percent,
                             self.n_diffPM / 22.139136 * 100/self.how_many_Mn_in_percent*100))
-        self.ax.scatter(B, M[inx_B],  label='$raw$', alpha=.2, color='g')
+        self.ax.scatter(B, M[np.where(inx_B)],  label='$raw$', alpha=.2, color='g')
         self.ax.scatter(B, M_for_fit, label='set for $fit$, $\\frac{{\left(M_++M_-\\right)}}{{2}} - PM(T={0:1.2g}K)$'.format(T), color='k', alpha=.2)
         self.ax.plot(B, 10*(M_for_fit - fun_fit(B, self.n_SPM, self.J_SPM)), 'k.', label='residuals $10*(raw - fit)$')
 

@@ -246,7 +246,7 @@ class Struct:
         ax.plot(self.xx, self.yy, 'k-', label='T={0}K {1}'.format(self.T, self.typeOfFiltering))
         ax.plot(self.H, self.M, 'x', label='T={0}K raw'.format(self.T))
         if self.fitWasDone:
-            ax.plot(self.xx, self.yy_fit,  'r-', label='T={0}K fit_PM'.format(self.T))
+            ax.plot(self.xx, self.yy_fit,  'r-', label='T={0}K fit_PM_single_phase'.format(self.T))
         ax.set_ylabel('$Moment (A/m)$', fontsize=20, fontweight='bold')
         ax.set_xlabel('$B (T)$', fontsize=20, fontweight='bold')
         ax.grid(True)
