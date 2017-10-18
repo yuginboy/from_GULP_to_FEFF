@@ -5,337 +5,8 @@
 * Last modified: 2017-10-13
 '''
 
-import sys
-import os
-from copy import deepcopy
-from io import StringIO
-import inspect
-import numpy as np
-import matplotlib.gridspec as gridspec
-from matplotlib import pylab
-import matplotlib.pyplot as plt
-import scipy as sp
-from scipy.interpolate import interp1d
-from scipy.interpolate import Rbf, InterpolatedUnivariateSpline, splrep, splev, splprep
-import re
-from shutil import copyfile
-from libs.dir_and_file_operations import listOfFilesFN, listOfFiles, listOfFilesFN_with_selected_ext
-from feff.libs.numpy_group_by_ep_second_draft import group_by
-from scipy.signal import savgol_filter
-from feff.libs.fit_current_curve import return_fit_param, func, f_PM, f_diff_PM_for_2_T, \
-    linearFunc, f_PM_with_T, f_SPM_with_T
-from scipy.optimize import curve_fit, leastsq
-
-g_J_Mn2_plus = 5.82
-g_J_Mn3_plus = 4.82
-g_e = 2.0023 # G-factor Lande
-mu_Bohr = 927.4e-26 # J/T
-Navagadro = 6.02214e23 #1/mol
-k_b = 1.38065e-23 #J/K
-
-rho_GaAs = 5.3176e3 #kg/m3
-mass_Molar_kg_GaAs = 144.645e-3 #kg/mol
-
-mass_Molar_kg_Diamond = 12.011e-3 # diamond
-rho_Diamond = 3.515e3
-
-testX1 = [0.024, 0.026, 0.028, 0.03, 0.032, 0.034, 0.036, 0.038, 0.03, 0.0325]
-testY1 = [0.6, 0.527361, 0.564139, 0.602, 0.640714, 0.676684, 0.713159, 0.7505, 0.9, 0.662469]
-testArray = np.array([testX1, testY1])
-
-def fromRowToColumn (Array = testArray):
-    # if num of columns bigger then num of rows then transpoze that marix
-    n,m = Array.shape
-    if n < m:
-        return Array.T
-    else:
-        return Array
-
-def sortMatrixByFirstColumn(Array = fromRowToColumn(testArray), colnum = 0):
-    # return sorted by selected column number the matrix
-    return Array[Array[:, colnum].argsort()]
-
-out = sortMatrixByFirstColumn()
-# print('sorted out:')
-# print(out)
-# print('--')
-def deleteNonUniqueElements(key = out[:, 0], val = out[:, 1]):
-    # calc the val.mean value for non-uniq key values
-    # u, idx = np.unique(Array[:, key_colnum], return_index=True)
-    return fromRowToColumn(np.array(group_by(key).mean(val)))
-
-# print('mean :')
-# print(deleteNonUniqueElements())
-# print('--')
-def from_EMU_cm3_to_A_by_m(moment_emu = 2300e-8, V_cm3 = 3e-6):
-    # return value of Magnetization in SI (A/m)
-    return (moment_emu / V_cm3)*1000
-def concentration_from_Ms(Ms = 7667, J=2.5):
-    # return concentration from Ms = n*gj*mu_Bohr*J = n*p_exp*mu_Bohr
-    return Ms/mu_Bohr/J/g_e
-def number_density(rho = rho_GaAs, M = mass_Molar_kg_GaAs):
-    # return concentration from Molar mass
-    return Navagadro*rho/M
-
-class Magnetic_Data:
-    def __init__(self):
-        self.magnetic_field = []
-        self.magnetic_moment = []
-        self.label = []
-        self.temperature = []
-        self.magnetic_field_shift = []
-        self.magnetic_moment_shift = []
-
-class Struct_base:
-    '''
-    Describe structure for a data
-    '''
-    def __init__(self):
-        self.raw = Magnetic_Data()
-        self.prepared_raw = Magnetic_Data()
-        self.fit = Magnetic_Data()
-
-        self.magnetic_field_inflection_point = 30
-        self.magnetic_field_step = 0.1 #[T]
-        self.magnetic_field_minimum = 0
-        self.magnetic_field_maximum = 0
-        self.J_total_momentum = 2.5
-        self.Mn_type = 'Mn2+' # Mn2+ or Mn3+
-        self.spin_type_cfg = 'high' # low or high
-        self.g_factor = g_e
-        self.mu_eff = g_J_Mn2_plus
-        self.volumeOfTheFilm_GaMnAs = 0 #[m^3]
-        self.fit.magnetic_moment = []
-        self.forFit_y = []
-        self.forFit_x = []
-        self.zeroIndex = []
-
-        # number of density for PM fit only for the current temperature:
-        self.concentration_ParaMagnetic = 0
-
-
-        # corrections for curve:
-        self.y_shift = 0
-        self.x_shift = 0
-
-        # fit does not calculated:
-        self.fitWasDone = False
-
-        # 'IUS' - Interpolation using univariate spline
-        # 'RBF' - Interpolation using Radial basis functions
-        # Interpolation using RBF - multiquadrics
-        # 'Spline'
-        # 'Cubic'
-        # 'Linear'
-        self.typeOfFiltering = 'IUS'
-
-        self.R_factor = 100
-
-        self.label_summary = ''
-
-    def define_Mn_type_variables(self):
-        '''
-                              # unpaired electrons            examples
-                    d-count    high spin   low spin
-                    d 4           4          2              Cr 2+ , Mn 3+
-                    d 5           5          1              Fe 3+ , Mn 2+
-                    d 6           4          0              Fe 2+ , Co 3+
-                    d 7           3          1              Co 2+
-                    Table: High and low spin octahedral transition metal complexes.
-                    '''
-        # ===================================================
-        # Mn2 +
-        # 5.916,  3d5 4s0, 5 unpaired e-, observed: 5.7 - 6.0 in [muB]
-        # self.mu_spin_only = np.sqrt(5*(5+2))
-        # Mn3 +
-        # 5.916, 3d4 4s0, 4 unpaired e-, observed: 4.8 - 4.9 in [muB]
-        # self.mu_spin_only = np.sqrt(4*(4+2))
-        if self.Mn_type == 'Mn2+':
-            if self.spin_type_cfg == 'high':
-                self.J_total_momentum = 2.5 # high spin
-            elif self.spin_type_cfg == 'low':
-                self.J_total_momentum = 1.5 # low spin ?
-            self.mu_eff = g_J_Mn2_plus
-
-        elif self.Mn_type == 'Mn3+':
-            if self.spin_type_cfg == 'low':
-                self.J_total_momentum = 2.0 # ? low-spin, probably because mu_eff is 4.82 from the experiment
-            elif self.spin_type_cfg == 'high':
-                self.J_total_momentum = 0.0 # high-spin
-            self.mu_eff = g_J_Mn3_plus
-
-        self.g_factor = self.mu_eff / self.J_total_momentum
-
-    def interpolate_data(self):
-
-        x = np.array(self.raw.magnetic_field)
-        y = np.array(self.raw.magnetic_moment)
-
-        if self.magnetic_field_minimum == self.magnetic_field_maximum:
-            self.magnetic_field_minimum = np.fix(10 * self.raw.magnetic_field.min()) / 10
-            self.magnetic_field_maximum = np.fix(10 * self.raw.magnetic_field.max()) / 10
-
-        if self.magnetic_field_minimum < self.raw.magnetic_field.min():
-            self.magnetic_field_minimum = np.fix(10 * self.raw.magnetic_field.min()) / 10
-
-        if self.magnetic_field_maximum > self.raw.magnetic_field.max():
-            self.magnetic_field_maximum = np.fix(10 * self.raw.magnetic_field.max()) / 10
-
-        self.fit.magnetic_field = \
-            np.r_[self.magnetic_field_minimum: self.magnetic_field_maximum: self.magnetic_field_step]
-
-
-
-        if self.typeOfFiltering == 'Linear':
-            f = interp1d(self.raw.magnetic_field, self.raw.magnetic_moment)
-            self.fit.magnetic_moment = f(self.fit.magnetic_field)
-        if self.typeOfFiltering == 'Cubic':
-            f = interp1d(self.raw.magnetic_field, self.raw.magnetic_moment, kind='cubic')
-            self.fit.magnetic_moment = f(self.fit.magnetic_field)
-        if self.typeOfFiltering == 'Spline':
-            tck = splrep(x, y, s=0)
-            self.fit.magnetic_moment = splev(self.fit.magnetic_field, tck, der=0)
-        if self.typeOfFiltering == 'IUS':
-            f = InterpolatedUnivariateSpline(self.raw.magnetic_field, self.raw.magnetic_moment)
-            self.fit.magnetic_moment = f(self.fit.magnetic_field)
-        if self.typeOfFiltering == 'RBF':
-            f = Rbf(self.raw.magnetic_field, self.raw.magnetic_moment, function = 'linear')
-            self.fit.magnetic_moment = f(self.fit.magnetic_field)
-
-        if abs(self.magnetic_field_minimum) == abs(self.magnetic_field_maximum):
-            self.y_shift = self.fit.magnetic_moment[-1] - abs(self.fit.magnetic_moment[0])
-            self.fit.magnetic_moment = self.fit.magnetic_moment - self.y_shift
-            self.fit.magnetic_moment_shift = self.y_shift
-
-            yy_0 = np.r_[0:self.fit.magnetic_moment[-1]:self.fit.magnetic_moment[-1]/100]
-            f_0 = interp1d(self.fit.magnetic_moment, self.fit.magnetic_field)
-            xx_0 = f_0(yy_0)
-
-            self.x_shift = xx_0[0]
-            self.fit.magnetic_field = self.fit.magnetic_field - self.x_shift
-            self.fit.magnetic_field_shift = self.x_shift
-
-
-        # we need to adjust new self.fit.magnetic_field values to a good precision:
-        if self.magnetic_field_minimum < self.fit.magnetic_field.min():
-            self.magnetic_field_minimum = np.fix(10 * self.fit.magnetic_field.min()) / 10
-
-        if self.magnetic_field_maximum > self.fit.magnetic_field.max():
-            self.magnetic_field_maximum = np.fix(10 * self.fit.magnetic_field.max()) / 10
-
-        xx = np.r_[self.magnetic_field_minimum: self.magnetic_field_maximum: self.magnetic_field_step]
-        self.zeroIndex = np.nonzero((np.abs(xx) < self.magnetic_field_step*1e-2))
-        xx[self.zeroIndex] = 0
-        f = interp1d(self.fit.magnetic_field, self.fit.magnetic_moment)
-        self.fit.magnetic_moment = f(xx)
-        self.fit.magnetic_field = xx
-
-        # store interpolated data of raw data in spacial object:
-        self.prepared_raw = deepcopy(self.fit)
-
-
-    def filtering(self):
-        # do some filtering operations under data:
-        if self.magnetic_field_minimum == self.magnetic_field_maximum:
-            self.magnetic_field_minimum = self.raw.magnetic_field.min()
-            self.magnetic_field_maximum = self.raw.magnetic_field.max()
-        self.fit.magnetic_field = np.r_[self.magnetic_field_minimum: self.magnetic_field_maximum: self.magnetic_field_step]
-        window_size, poly_order = 101, 3
-        self.fit.magnetic_moment = savgol_filter(self.fit.magnetic_moment, window_size, poly_order)
-
-    def fit_PM_single_phase(self):
-        # do a fit procedure:
-        # indx = np.argwhere(self.fit.magnetic_field >= 3)
-        indx = (self.fit.magnetic_field >= 3)
-        B = self.fit.magnetic_field[indx]
-        M = self.fit.magnetic_moment[indx]
-        self.forFit_x = (self.g_factor * self.J_total_momentum * mu_Bohr * B) / k_b / self.raw.temperature
-        self.forFit_y = M
-        n = return_fit_param(self.forFit_x, self.forFit_y) # [1/m^3*1e27]
-
-        # try to fit by using 2 params: n and J
-        # initial_guess = [0.01, 2.5]
-        def fun_tmp(x, n):
-            return f_PM(x, n, J=self.J_total_momentum, g_factor=self.g_factor)
-
-        popt, pcov = curve_fit(fun_tmp,
-                               xdata=self.forFit_x,
-                               ydata=self.forFit_y)
-        xx = (self.g_factor*self.J_total_momentum*mu_Bohr*self.fit.magnetic_field)/k_b/self.raw.temperature
-        # yy = f_PM(xx, popt[0], J=self.J_total_momentum, g_factor=self.g_factor)
-
-        # plt.plot(B, func(self.forFit_x, n), 'r-', B, M, '.-')
-
-        self.fit.magnetic_moment = func(xx, n)
-        self.fit.magnetic_moment[self.zeroIndex] = 0
-        self.calc_R_factor(raw=self.fit.magnetic_moment, fit=self.fit.magnetic_moment)
-        self.yy_fit_label = 'fit [$R={R:1.3}$]: $g_{{factor}}={g_f:1.3}$, $J({Mn_type}$, ${spin_type})={J:1.3}[\mu_{{Bohr}}]$'.format(
-            g_f=self.g_factor,
-            R=self.R_factor,
-            Mn_type=self.Mn_type,
-            spin_type=self.spin_type_cfg,
-            J=self.J_total_momentum
-        )
-
-
-
-        plt.plot(self.fit.magnetic_field, self.fit.magnetic_moment, 'r-', label=self.yy_fit_label)
-        plt.plot(self.fit.magnetic_field, self.fit.magnetic_moment, '.-', label='RAW')
-        # plt.plot(self.fit.magnetic_field, yy, 'x', label='yy')
-        plt.legend()
-
-        self.n_PM = n[0]
-        print('->> fit PM (single PM phase) have been done. For T = {0} K obtained n = {1:1.3g} *1e27 [1/m^3] or {2:1.3g} % of the n(GaAs)'\
-              .format(self.raw.temperature,
-                      self.n_PM,
-                      self.n_PM/22.139136*100))
-        print('->> R = {R_f:1.5g}'.format(R_f=self.R_factor))
-        print('->> J[{Mn_type}, {spin_type}] = {J:1.3} [mu(Bohr)]'.format(
-            Mn_type=self.Mn_type,
-            spin_type=self.spin_type_cfg,
-            J=self.J_total_momentum))
-        self.fitWasDone = True
-
-    def plot(self, ax):
-        ax.plot(self.fit.magnetic_field, self.fit.magnetic_moment, 'k-', label='T={0}K {1}'.format(self.raw.temperature, self.typeOfFiltering))
-        ax.plot(self.raw.magnetic_field, self.raw.magnetic_moment, 'x', label='T={0}K raw'.format(self.raw.temperature))
-        if self.fitWasDone:
-            ax.plot(self.fit.magnetic_field, self.fit.magnetic_moment,  'r-', label='T={0}K fit_PM_single_phase'.format(self.raw.temperature))
-        ax.set_ylabel('$Moment (A/m)$', fontsize=20, fontweight='bold')
-        ax.set_xlabel('$B (T)$', fontsize=20, fontweight='bold')
-        ax.grid(True)
-        # ax.fill_between(x, y - error, y + error,
-        #                 alpha=0.2, edgecolor='#1B2ACC', facecolor='#089FFF',
-        #                 linewidth=4, linestyle='dashdot', antialiased=True, label='$\chi(k)$')
-
-    def plot_data_fit_only(self, ax=plt.gca()):
-        ax.plot(self.fit.magnetic_field, self.fit.magnetic_moment,  'r-', label='T={0}K fit_PM_single_phase'.format(self.raw.temperature))
-
-    def plotLogT(self, ax, H1 = 10, H2 = 300):
-        # Plot graph log(1/rho) vs 1/T to define the range with a different behavior of charge currents
-        a = self.fit.magnetic_field
-        # find indeces for elements inside the region [T1, T2]:
-        ind = np.where(np.logical_and(a >= H1, a <= H2))
-        x = 1/(self.fit.magnetic_field[ind]**1)
-        # y = np.log(self.fit.magnetic_moment[ind])
-        y = self.fit.magnetic_moment[ind]**(-1)
-        ax.plot(x, y, 'o-', label='T={0}K'.format(self.raw.temperature))
-        # ax.set_ylabel('$ln(1/\\rho)$', fontsize=20, fontweight='bold')
-        ax.set_ylabel('$(\sigma)$', fontsize=20, fontweight='bold')
-        ax.set_xlabel('$1/T^{1}$', fontsize=20, fontweight='bold')
-        ax.grid(True)
-
-    def calc_R_factor(self, raw=[], fit=[]):
-        # eval R-factor
-        denominator = np.sum(np.abs(raw))
-        if (len(raw) == len(fit)) and (denominator != 0):
-            self.R_factor = 100 * np.sum(np.abs(raw - fit))/denominator
-
-class Struct_complex:
-    def __init__(self):
-        self.source = Magnetic_Data()
-
-
+from feff.libs.GaMnAs_sub_classes import *
+from itertools import product
 
 
 m_B180v = 14.3 #mg
@@ -355,6 +26,7 @@ class ConcentrationOfMagneticIons:
         self.how_many_Mn_in_percent = 2.3 #[%]
         self.dataFolderSorceBase = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)'
         self.dataFolderSorce = 'B180v[s]m(H)-dia'
+        self.ax = odict()
 
         # We suppose that the weight measurements has more accuracy then spatial measurements in the typical lab conditions.
         # There for we calculate Area size for each sample from the density of pure GaAs and from the information about
@@ -457,11 +129,17 @@ class ConcentrationOfMagneticIons:
             tmp_data = sortMatrixByFirstColumn(Array = fromRowToColumn(tmp_data), colnum = 0)
             case_name = re.findall('[\d\.\d]+', os.path.basename(i).split('.')[0])
             # create a new instance for each iteration step otherwise struct_of_data has one object for all keys
-            data = Struct_base()
-            data.T = float(case_name[0])
-            data.H = tmp_data[:, 0]/10000 #[T]
-            data.Mraw = tmp_data[:, 1]
-            data.M = from_EMU_cm3_to_A_by_m(moment_emu = data.Mraw, V_cm3 = self.volumeOfTheFilm_GaMnAs*1e6)
+            data = StructBase()
+
+            data.raw.temperature = float(case_name[0])
+            data.fit.temperature = data.raw.temperature
+
+            data.raw.magnetic_field = tmp_data[:, 0]/10000 #[T]
+            data.raw.magnetic_moment_raw = tmp_data[:, 1]
+            data.raw.magnetic_moment = from_EMU_cm3_to_A_by_m(
+                moment_emu=data.raw.magnetic_moment_raw,
+                V_cm3=self.volumeOfTheFilm_GaMnAs*1e6
+            )
 
             data.magnetic_field_minimum = self.Hmin
             data.magnetic_field_maximum = self.Hmax
@@ -475,34 +153,38 @@ class ConcentrationOfMagneticIons:
             # 'Linear'
             data.typeOfFiltering = 'Linear'
             data.interpolate_data()
+            data.set_default_line_params()
+            data.magnetic_field_value_for_fit = 4
+            data.line_subtracting()
 
-            plt.figure()
+
+            data.title = 'Data preprocessing'
+            data.font_size = 16
+            data.plot(ax=self.ax[0])
+
+            data.title = 'Single phase $Mn^{\\mathbf{2+\\Uparrow}}$ PM fit'
+            data.set_Mn2_plus_high()
+            data.raw.do_plot = False
+            data.line.do_plot = False
+            data.magnetic_field_value_for_fit = 3
             data.fit_PM_single_phase()
-            plt.figure()
+            data.plot(ax=self.ax[1])
 
-            data.Mn_type = 'Mn2+'
-            data.spin_type_cfg = 'high'
-            data.define_Mn_type_variables()
+            data.title = 'Single phase $Mn^{\\mathbf{2+\\Downarrow}}$ PM fit'
+            data.set_Mn2_plus_low()
+            data.raw.do_plot = False
+            data.line.do_plot = False
+            data.magnetic_field_value_for_fit = 3
             data.fit_PM_single_phase()
-            plt.figure()
+            data.plot(ax=self.ax[2])
 
-            data.Mn_type = 'Mn2+'
-            data.spin_type_cfg = 'low'
-            data.define_Mn_type_variables()
+            data.title = 'Single phase $Mn^{\\mathbf{3+\\Downarrow}}$ PM fit'
+            data.set_Mn3_plus_low()
+            data.raw.do_plot = False
+            data.line.do_plot = False
+            data.magnetic_field_value_for_fit = 3
             data.fit_PM_single_phase()
-            plt.figure()
-
-            data.Mn_type = 'Mn3+'
-            data.spin_type_cfg = 'low'
-            data.define_Mn_type_variables()
-            data.fit_PM_single_phase()
-
-
-
-            data.plot(self.ax)
-            plt.draw()
-            self.ax.legend(shadow=True, fancybox=True, loc='best')
-
+            data.plot(ax=self.ax[3])
 
             self.struct_of_data[case_name[0]] = data
 
@@ -716,8 +398,6 @@ class ConcentrationOfMagneticIons:
             self.ax.grid(True)
             plt.draw()
 
-
-
     def calc_SPM_Langevin(self):
         # fit data by using a Langevin function:
         if self.n_diffPM <= 0:
@@ -874,30 +554,39 @@ class ConcentrationOfMagneticIons:
         DPI = self.fig.get_dpi()
         self.fig.set_size_inches(800.0 / DPI, 600.0 / DPI)
 
-        gs = gridspec.GridSpec(1, 1)
+        n, m = 2, 2
+        ind = 0
+        gs = gridspec.GridSpec(n, m)
 
-        self.ax = self.fig.add_subplot(gs[0, 0])
-        self.ax.grid(True)
-        self.ax.set_ylabel(self.ylabel_txt, fontsize=20, fontweight='bold')
-        self.ax.set_xlabel(self.xlabel_txt, fontsize=20, fontweight='bold')
+        for i in range(n):
+            for j in range(m):
+                self.ax[ind] = self.fig.add_subplot(gs[i, j])
+                self.ax[ind].grid(True)
+                # Change the axes border width
+                for axis in ['top', 'bottom', 'left', 'right']:
+                    self.ax[ind].spines[axis].set_linewidth(2)
+                ind += 1
+        # self.ax.set_ylabel(self.ylabel_txt, fontsize=20, fontweight='bold')
+        # self.ax.set_xlabel(self.xlabel_txt, fontsize=20, fontweight='bold')
 
-        self.fig.suptitle(self.suptitle_txt, fontsize=22, fontweight='normal')
+        self.fig.suptitle(self.suptitle_txt, fontsize=20, fontweight='normal')
 
-        # Change the axes border width
-        for axis in ['top', 'bottom', 'left', 'right']:
-            self.ax.spines[axis].set_linewidth(2)
+
         # plt.subplots_adjust(top=0.85)
         # gs1.tight_layout(fig, rect=[0, 0.03, 1, 0.95])
-        self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+        # self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+        # self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
 
         # put window to the second monitor
-        # figManager.window.setGeometry(1923, 23, 640, 529)
+        self.figManager.window.setGeometry(1923, 23, 1920, 1105)
         # self.figManager.window.setGeometry(780, 20, 800, 600)
-        self.figManager.window.setGeometry(780, 20, 1024, 768)
+        # self.figManager.window.setGeometry(780, 20, 1024, 768)
         self.figManager.window.setWindowTitle('Magnetic fitting')
+        # gs.update(wspace=0.1, hspace=0.1)
+        self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=5.5, h_pad=5.5)
         self.figManager.window.showMinimized()
 
-        self.fig.tight_layout(rect=[0.03, 0.03, 1, 0.95], w_pad=1.1)
+
 
 
         # save to the PNG file:
