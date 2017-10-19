@@ -1,3 +1,9 @@
+'''
+* Created by Zhenia Syryanyy (Yevgen Syryanyy)
+* e-mail: yuginboy@gmail.com
+* License: this code is in GPL license
+* Last modified: 2017-10-19
+'''
 import sys
 import os
 from io import StringIO
@@ -104,6 +110,11 @@ def get_upper_folder_name(file_path):
 def get_folder_name(file_path):
     # return only a directory name when file is placed
     return os.path.split(os.path.normpath(file_path))[0]
+
+def touch(path):
+    '''create empty file'''
+    with open(path, 'a'):
+        os.utime(path, None)
 
 if __name__ == "__main__":
     print ('-> you run ',  __file__, ' file in a main mode' )

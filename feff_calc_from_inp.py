@@ -23,7 +23,7 @@ import subprocess
 from feff.libs.plot_data import plotData
 
 from feff.libs.dir_and_file_operations import create_out_data_folder, listOfFiles, listOfFilesFN, \
-    deleteAllFilesInFolder, listOfFilesNameWithoutExt, listOfFilesFN_with_selected_ext
+    deleteAllFilesInFolder, listOfFilesNameWithoutExt, listOfFilesFN_with_selected_ext, touch
 
 class FEFF_calculation_class():
     def __init__(self):
@@ -137,8 +137,8 @@ class FEFF_calculation_class():
         #             os.makedirs(outDirPath, exist_ok=True)
 
 
-
         result_dir = create_out_data_folder(outDirPath)
+
         # go to the tmp directory:
         os.chdir(tmpPath)
 
@@ -249,6 +249,20 @@ class FEFF_calculation_class():
                             plotData(x=k, y=chi_mean, error=chi_std, numOfIter=i, out_dir=result_dir,
                                      case=folder_name + f'_from_{shift}_to_{i}]',
                                      y_median=chi_median, y_max=chi_max, y_min=chi_min)
+            else:
+                # if chi.dat is absent
+                chiOutName = 'chi_' + currentFileName + ".error"
+                print('create the {} file  ->'.format(chiOutName))
+                inp_errors_dir = os.path.join(result_dir, 'inp_errors')
+                if not (os.path.isdir(inp_errors_dir)):
+                    os.makedirs(inp_errors_dir, exist_ok=True)
+                copyfile(f, os.path.join(inp_errors_dir, currentFileName + '.inp'))
+                print('copy the ', f, ' to the -> ', os.path.join(inp_errors_dir, currentFileName + '.inp'))
+                # create a new name to the chi.dat output file:
+                # chiOutName = "chi_%05d.dat" %(i)
+
+                touch(os.path.join(outDirPath, chiOutName))
+                print('feff calculation was crushed')
             i += 1
 
         chi_std = np.std(chi[:, :], axis=1)

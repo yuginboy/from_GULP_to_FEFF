@@ -36,7 +36,7 @@ import subprocess
 from feff.libs.plot_data import plotData
 
 from feff.libs.dir_and_file_operations import create_out_data_folder, listOfFiles, listOfFilesFN, \
-    deleteAllFilesInFolder, listOfFilesNameWithoutExt, listOfFilesFN_with_selected_ext
+    deleteAllFilesInFolder, listOfFilesNameWithoutExt, listOfFilesFN_with_selected_ext, touch
 # from libs.create_images import create_graphs_and_save_images_from_chi_dat
 
 # for parallel calculation:
@@ -52,10 +52,7 @@ import multiprocessing
 #   for p in proc:
 #     p.join()
 
-def touch(path):
-    '''create empty file'''
-    with open(path, 'a'):
-        os.utime(path, None)
+
 
 def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath = '/home/yugin/VirtualboxShare/FEFF/tmp',
                 outDirPath = '/home/yugin/VirtualboxShare/FEFF/out', plotTheData = True):
@@ -206,10 +203,16 @@ def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath 
                                 y_median= chi_median, y_max=chi_max, y_min=chi_min)
         else:
             # if chi.dat is absent
-            print('create the chi_%05d.error file  ->' % (i + 1))
+            chiOutName = 'chi_' + currentFileName + ".error"
+            print('create the {} file  ->'.format(chiOutName))
+            inp_errors_dir = os.path.join(result_dir, 'inp_errors')
+            if not (os.path.isdir(inp_errors_dir)):
+                os.makedirs(inp_errors_dir, exist_ok=True)
+            copyfile(f, os.path.join(inp_errors_dir, currentFileName + '.inp'))
+            print('copy the ', f, ' to the -> ', os.path.join(inp_errors_dir, currentFileName + '.inp'))
             # create a new name to the chi.dat output file:
             # chiOutName = "chi_%05d.dat" %(i)
-            chiOutName = 'chi_' + currentFileName + "_%05d.error" % (i + 1)
+
             touch(os.path.join(outDirPath, chiOutName))
             print('feff calculation was crushed')
 
