@@ -145,6 +145,8 @@ class StructBase:
         self.spin_type_cfg = 'high' # low or high
         self.g_factor = g_e
         self.mu_eff = g_J_Mn2_plus
+        self.mu_eff_min = g_J_Mn2_plus - 0.1
+        self.mu_eff_max = g_J_Mn2_plus + 0.1
         self.volumeOfTheFilm_GaMnAs = 0 #[m^3]
         self.fit.magnetic_moment = []
         self.forFit_y = []
@@ -205,6 +207,8 @@ class StructBase:
             elif self.spin_type_cfg == 'low':
                 self.J_total_momentum = 1.5 # low spin ?
             self.mu_eff = g_J_Mn2_plus
+            self.mu_eff_min = 5.7
+            self.mu_eff_max = 6.0
 
         elif self.Mn_type == 'Mn3+':
             if self.spin_type_cfg == 'low':
@@ -212,6 +216,8 @@ class StructBase:
             elif self.spin_type_cfg == 'high':
                 self.J_total_momentum = 0.0 # high-spin
             self.mu_eff = g_J_Mn3_plus
+            self.mu_eff_min = 4.8
+            self.mu_eff_max = 4.9
 
         self.g_factor = self.mu_eff / self.J_total_momentum
 

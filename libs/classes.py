@@ -5,6 +5,7 @@ from libs.inputheader import writeHeaderToInpFile
 from libs.dir_and_file_operations import create_out_data_folder
 import os
 from libs.average_rdf import AverageRDF
+
 def angstrom_to_bohr(x=0):
     return x*1.8897259885789 # 1 angstrom [Å] = 1.8897259885789 Bohr radius [b, a.u.]
 def bohr_to_angstrom(x=0):
@@ -61,6 +62,9 @@ class Unitcell(AverageRDF):
         self.primvec.append('   0.000       0.000       1.000\n')
 
         super().__init__()
+
+    def get_num_of_major_element_tag(self):
+        return self.tag.tolist().count(self.majorElemTag)
 
     def set_current_feff_file_idx(self, idx):
         Unitcell._current_feff_file_idx = idx

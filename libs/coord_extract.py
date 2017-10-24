@@ -7,6 +7,7 @@ import shutil
 from libs.classes import Unitcell
 from feff.mainFEFF import feffCalcFun
 from feff_calc_from_inp_parallel import FEFF_parallel_calculation_class
+from feff.libs.determine_numbers_of_target_atoms import TargetAtom
 
 limitNumOfSnapshots = 1e6
 
@@ -156,6 +157,15 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
 
     if i < numOfLinesInFile:
         bar.finish()
+
+    # write atoms.cfg file (the number of majorElemTag):
+    atoms_cfg = TargetAtom()
+    atoms_cfg.atom_type = atomInSnapshot.majorElemTag
+    atoms_cfg.path_to_cfg_file = os.path.join(os.path.dirname(file.name), 'atoms.cfg')
+    atoms_cfg.number_of_target_atoms = atomInSnapshot.get_num_of_major_element_tag()
+    atoms_cfg.create_cfg_file()
+    atoms_cfg.print_info()
+
     # write CFG files:
     if doWriteCFG:
         atomInSnapshot.writeCFGfileSeq()
@@ -195,4 +205,5 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
     if doWriteFEFFinp:
         atomInSnapshot.writeAverFeffInpFile()
     shutil.rmtree(atomInSnapshot.outDirFEFFtmp)
+    atoms_cfg.print_info()
     print('end of the FEFF simulations')

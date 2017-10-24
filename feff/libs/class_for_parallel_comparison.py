@@ -7,6 +7,7 @@
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
 import os
 import datetime
+from time import sleep
 from collections import OrderedDict as odict
 from timeit import default_timer as timer
 import copy
@@ -18,10 +19,12 @@ import matplotlib.pyplot as plt
 from matplotlib import pylab
 import matplotlib.gridspec as gridspec
 import numpy as np
+from feff.libs.determine_numbers_of_target_atoms import TargetAtom
 
 import progressbar
 class Model_for_spectra():
     def __init__(self):
+        self.target_atom_type = 'Mn'
         # How many serial snapshots from different center atoms we have:
         self.numberOfSerialEquivalentAtoms = 2
 
@@ -41,7 +44,7 @@ class Model_for_spectra():
         self.scale_theory_factor_CHI = 1
 
         self.listOfSnapshotFiles = []
-        self.projectWorkingFEFFoutDirectory = '/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001'
+        self.projectWorkingFEFFoutDirectory = ''
 
         # create object for theoreticaly calculated spectra:
         self.theory = Spectrum()
@@ -50,6 +53,23 @@ class Model_for_spectra():
 
         # create dict for store all snapshots in path:
         self.dictOfAllSnapshotsInDirectory = odict()
+
+        # method of path giving (by using GUI or Console):
+        self.is_GUI = True
+
+        # vars for GUI load message box:
+        self.fileNameOfStoredVars = 'model_2_a_vars.pckl'
+        self.txt_info_message = "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the A-model \n" \
+                   "        (top layer model !)\n" \
+                   "-=============================-\n" \
+                   "    This list of files will be divided\n" \
+                   "       by parallel job value\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n"
 
     def get_Model_name(self):
         path = os.path.join(self.projectWorkingFEFFoutDirectory, self.listOfSnapshotFiles[0])
@@ -84,6 +104,41 @@ class Model_for_spectra():
 
         return R_tot, R_ftr, R_chi
 
+    def get_dir_path_by_GUI(self):
+        import tkinter as tk
+        from tkinter import filedialog, messagebox
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        a.fileNameOfStoredVars = self.fileNameOfStoredVars
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showinfo("info", self.txt_info_message)
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # get number of target atoms from the atoms.cfg file:
+        a_cfg = TargetAtom()
+        a_cfg.atom_type = self.target_atom_type
+        a_cfg.path_to_cfg_file = os.path.join(os.path.dirname(dir_path), 'atoms.cfg')
+        self.numberOfSerialEquivalentAtoms = a_cfg.get_number_of_target_atoms()
+        a_cfg.print_info()
+
+        txt_info = "selected model has\nN={} {} atoms".format(
+            self.numberOfSerialEquivalentAtoms, self.target_atom_type)
+        messagebox.showinfo("info", txt_info)
+        root.update()
+        return dir_path
+
+    def get_dir_path(self):
+        if self.is_GUI:
+            return self.get_dir_path_by_GUI()
+        else:
+            return self.projectWorkingFEFFoutDirectory
+
 class FTR_gulp_to_feff_A_model_base():
     '''
     Class to search optimal snapshot coordinates by compare chi(k) nad FTR(r) spectra between the snapshots and
@@ -92,6 +147,7 @@ class FTR_gulp_to_feff_A_model_base():
     '''
 
     def __init__(self):
+        self.target_atom_type = 'Mn'
         # store minimum values:
         self.minimum = BaseData()
         self.minimum.fill_initials()
@@ -134,7 +190,8 @@ class FTR_gulp_to_feff_A_model_base():
         self.Chi_k = GraphElement()
         self.suptitle_fontsize = 18
 
-        self.projectWorkingFEFFoutDirectory = '/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001'
+        # self.projectWorkingFEFFoutDirectory = '/home/yugin/VirtualboxShare/GaMnO/debug/1mono1SR2VasVga2_6/feff__0001'
+        self.projectWorkingFEFFoutDirectory = ''
         self.listOfSnapshotFiles = []
         # out dir for  Rfactor minimum files:
         self.outMinValsDir = ''
@@ -179,6 +236,17 @@ class FTR_gulp_to_feff_A_model_base():
 
         self.saveDataToDisk = True
         self.parallel_job_numbers = 2
+
+        # method of path giving (by using GUI or Console):
+        self.is_GUI = True
+        # vars for GUI load message box:
+        self.fileNameOfStoredVars = 'model_single.pckl'
+        self.txt_info_message = "                                    \n" \
+                                "-=============================-\n" \
+                                "        select the model's \n" \
+                                "         FEFF-out folder \n" \
+                                "         (Ex: feff_0001)\n" \
+                                "________________________________\n\n"
 
         self.set_ideal_curve_params()
 
@@ -1212,29 +1280,48 @@ class FTR_gulp_to_feff_A_model_base():
         # start searching procedure:
         self.findBestSnapshotFromList()
 
+    def get_dir_path_by_GUI(self):
+        import tkinter as tk
+        from tkinter import filedialog, messagebox
+        # open GUI filedialog to select feff_0001 working directory:
+        a = StoreAndLoadVars()
+        a.fileNameOfStoredVars = self.fileNameOfStoredVars
+        print('last used: {}'.format(a.getLastUsedDirPath()))
+        # openfile dialoge
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showinfo("info", self.txt_info_message)
+        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
+        if os.path.isdir(dir_path):
+            a.lastUsedDirPath = dir_path
+            a.saveLastUsedDirPath()
+
+        # get number of target atoms from the atoms.cfg file:
+        a_cfg = TargetAtom()
+        a_cfg.atom_type = self.target_atom_type
+        a_cfg.path_to_cfg_file = os.path.join(os.path.dirname(dir_path), 'atoms.cfg')
+        self.numberOfSerialEquivalentAtoms = a_cfg.get_number_of_target_atoms()
+        a_cfg.print_info()
+
+        txt_info = "selected model has\nN={} Mn atoms".format(
+            self.numberOfSerialEquivalentAtoms)
+        messagebox.showinfo("info", txt_info)
+        root.update()
+        return dir_path
+
+    def get_dir_path(self):
+        if self.is_GUI:
+            return self.get_dir_path_by_GUI()
+        else:
+            return self.projectWorkingFEFFoutDirectory
+
     def calcAllSnapshotFiles_temperature(self):
         '''
         main method to run searching procedure of minimum R-factor snapshot
         compare with 350.chik in data folder
         :return:
         '''
-        import tkinter as tk
-        from tkinter import filedialog, messagebox
-        # open GUI filedialog to select feff_0001 working directory:
-        a = StoreAndLoadVars()
-        a.fileNameOfStoredVars = 'model_single.pckl'
-        print('last used: {}'.format(a.getLastUsedDirPath()))
-        # openfile dialoge
-        root = tk.Tk()
-        root.withdraw()
-        txt_info = "select the model FEFF-out folder\nN={} Mn atoms".format(
-            self.numberOfSerialEquivalentAtoms)
-        messagebox.showinfo("info", txt_info)
-        dir_path = filedialog.askdirectory(initialdir=a.getLastUsedDirPath())
-        if os.path.isdir(dir_path):
-            a.lastUsedDirPath = dir_path
-            a.saveLastUsedDirPath()
-
+        dir_path = self.get_dir_path()
         # change the working directory path to selected one:
         self.projectWorkingFEFFoutDirectory = dir_path
         # search for experiment and theory files:
@@ -1484,7 +1571,7 @@ class FTR_gulp_to_feff_A_model_base():
         # start searching procedure:
         self.findBestSnapshotsCombinationFrom_3_type_Models()
 
-    def loadListOfFilesFor_2_type_Models(self):
+    def loadListOfFilesFor_2_type_Models_old(self):
         '''
         load directories and lists of files for two models A-B
         :return:
@@ -1577,7 +1664,76 @@ class FTR_gulp_to_feff_A_model_base():
                model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
                outDirectoryForTowModelsFitResults
 
-    def loadListOfFilesFor_3_type_Models(self):
+    def loadListOfFilesFor_2_type_Models(self):
+        '''
+        load directories and lists of files for two models A-B
+        :return:
+        '''
+
+        self.model_A.fileNameOfStoredVars = 'model_2_a_vars.pckl'
+
+
+        # load A-model data:
+        self.model_A.txt_info_message = \
+            "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the A-model \n" \
+                   "        (top layer model !)\n" \
+                   "-=============================-\n" \
+                   "    This list of files will be divided\n" \
+                   "       by parallel job value\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n"
+
+
+        # change the working directory path to selected one:
+        model_A_projectWorkingFEFFoutDirectory = self.model_A.get_dir_path()
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_A_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_A_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+
+        # load B-model data:
+        self.model_B.fileNameOfStoredVars = 'model_2_b_vars.pckl'
+        self.model_B.txt_info_message = \
+            "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the B-model \n" \
+                   "        (down layer model !)\n" \
+                   "-=============================-\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n"
+
+        # change the working directory path to selected one:
+        model_B_projectWorkingFEFFoutDirectory = self.model_B.get_dir_path()
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_B_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_B_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+        # select outDirectoryForTowModelsFitResults:
+        self.fileNameOfStoredVars = 'outdir_vars.pckl'
+        self.txt_info_message = "select the directory to store the results\nof two A-B models fitting"
+        dir_path = self.get_dir_path()
+
+        model_A_modelName = os.path.split(os.path.split((model_A_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_A_modelName)
+        model_B_modelName = os.path.split(os.path.split((model_B_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_B_modelName)
+        maskTxt = '[{0}]__[{1}]__{2}_({3})'.format(model_A_modelName, model_B_modelName,
+                                                 self.user, self.sample_preparation_mode)
+        outDirectoryForTowModelsFitResults = create_out_data_folder(dir_path, maskTxt)
+
+        return model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
+               model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
+               outDirectoryForTowModelsFitResults
+
+    def loadListOfFilesFor_3_type_Models_old(self):
         '''
         load directories and lists of files for two models A-B-C
         :return:
@@ -1687,6 +1843,99 @@ class FTR_gulp_to_feff_A_model_base():
         if os.path.isdir(dir_path):
             out.lastUsedDirPath = dir_path
             out.saveLastUsedDirPath()
+
+        model_A_modelName = os.path.split(os.path.split((model_A_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_A_modelName)
+        model_B_modelName = os.path.split(os.path.split((model_B_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_B_modelName)
+        model_C_modelName = os.path.split(os.path.split((model_C_projectWorkingFEFFoutDirectory))[0])[1]
+        print(model_C_modelName)
+        maskTxt = '[{0}]__[{1}]__[{2}]__{3}_({4})'.format(model_A_modelName, model_B_modelName, model_C_modelName,
+                                                 self.user, self.sample_preparation_mode)
+        outDirectoryFor_3_type_ModelsFitResults = create_out_data_folder(dir_path, maskTxt)
+        print('outdata directory is:\n', outDirectoryFor_3_type_ModelsFitResults, '\n', '---'*15)
+
+        return model_A_projectWorkingFEFFoutDirectory, model_A_listOfSnapshotFiles, \
+               model_B_projectWorkingFEFFoutDirectory, model_B_listOfSnapshotFiles, \
+               model_C_projectWorkingFEFFoutDirectory, model_C_listOfSnapshotFiles, \
+               outDirectoryFor_3_type_ModelsFitResults
+
+    def loadListOfFilesFor_3_type_Models(self):
+        '''
+        load directories and lists of files for two models A-B-C
+        :return:
+        '''
+        self.model_A.fileNameOfStoredVars = 'model_3_a_vars.pckl'
+
+        # load A-model data:
+        self.model_A.txt_info_message = \
+            "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the A-model \n" \
+                   "        (top layer model !)\n" \
+                   "-=============================-\n" \
+                   "    This list of files will be divided\n" \
+                   "       by parallel job value\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n"
+
+        dir_path_model_A = self.model_A.get_dir_path()
+
+        # change the working directory path to selected one:
+        model_A_projectWorkingFEFFoutDirectory = dir_path_model_A
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_A_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_A_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+
+        # load B-model data:
+        self.model_B.fileNameOfStoredVars = 'model_3_b_vars.pckl'
+        self.model_B.txt_info_message = \
+            "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the B-model \n" \
+                   "        (middle layer model !)\n" \
+                   "-=============================-\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n"
+
+        # change the working directory path to selected one:
+        model_B_projectWorkingFEFFoutDirectory = self.model_B.get_dir_path()
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_B_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_B_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+
+        # load C-model data:
+        self.model_C.fileNameOfStoredVars = 'model_3_c_vars.pckl'
+        self.model_C.txt_info_message = \
+            "                                    \n" \
+                   "-=============================-\n" \
+                   "        select the C-model \n" \
+                   "        (down layer model !)\n" \
+                   "-=============================-\n" \
+                   "________________________________\n\n" \
+                   "         FEFF-out folder \n" \
+                   "         (Ex: feff_0001)\n" \
+                   "________________________________\n\n"
+
+        # change the working directory path to selected one:
+        model_C_projectWorkingFEFFoutDirectory = self.model_C.get_dir_path()
+        # search for experiment and theory files:
+        # self.getInDirectoryStandardFilePathes()
+        model_C_listOfSnapshotFiles = listOfFilesFN_with_selected_ext(model_C_projectWorkingFEFFoutDirectory,
+                                                                           ext='dat')
+        # ==============================================================================================================
+        # select outDirectoryForThreeModelsFitResults:
+        self.fileNameOfStoredVars = 'outdir_3_vars.pckl'
+        self.txt_info_message = "select the directory to store the results\nof three A-B-C models fitting"
+        dir_path = self.get_dir_path()
 
         model_A_modelName = os.path.split(os.path.split((model_A_projectWorkingFEFFoutDirectory))[0])[1]
         print(model_A_modelName)
@@ -1831,40 +2080,17 @@ if __name__ == '__main__':
     # plt.show()
 
 
-    # # start global searching procedure:
-    # fit the sub-components of one model
-    # If Model has X-num of Mn then procedure search the weights of X-num of snapshots.
-    a = FTR_gulp_to_feff_A_model_base()
-    a.numberOfSerialEquivalentAtoms = 9
-    a.do_FTR_from_linear_Chi_k_SpectraComposition = False
-    a.find_min_Rtot_in_single_snapshot = False
-    a.weight_R_factor_FTR = 1.0
-    a.weight_R_factor_chi = 0.0
-    a.scale_theory_factor_FTR = 0.81
-    a.scale_experiment_factor_FTR = 1.0
-
-    #  change the user name, which parameters for xftf transformation you want to use:
-    a.user = 'ID'
-    # change tha sample preparation method:
-    a.sample_preparation_mode = '450'
-    # if you want compare with the theoretical average, do this:
-    # a.calcAllSnapshotFiles()
-    #  if you want to find the minimum from the all snapshots do this:
-    a.calcAllSnapshotFiles_temperature()
-    # if you want to check only one snapshot do this:
-    # a.calcSelectedSnapshotFile()
-
-
-    # # start global search of Two-model combination:
+    # # # start global searching procedure:
+    # # fit the sub-components of one model
+    # # If Model has X-num of Mn then procedure search the weights of X-num of snapshots.
     # a = FTR_gulp_to_feff_A_model_base()
+    # # a.numberOfSerialEquivalentAtoms = 2
+    # a.do_FTR_from_linear_Chi_k_SpectraComposition = False
+    # a.find_min_Rtot_in_single_snapshot = False
     # a.weight_R_factor_FTR = 1.0
     # a.weight_R_factor_chi = 0.0
     # a.scale_theory_factor_FTR = 0.81
     # a.scale_experiment_factor_FTR = 1.0
-    #
-    # a.model_A.numberOfSerialEquivalentAtoms = 5
-    # a.model_B.numberOfSerialEquivalentAtoms = 2
-    # a.model_C.numberOfSerialEquivalentAtoms = 3
     #
     # #  change the user name, which parameters for xftf transformation you want to use:
     # a.user = 'ID'
@@ -1872,15 +2098,41 @@ if __name__ == '__main__':
     # a.sample_preparation_mode = '450'
     # # if you want compare with the theoretical average, do this:
     # # a.calcAllSnapshotFiles()
-    #
-    # # for debug and profiling:
-    # a.saveDataToDisk = True
-    #
     # #  if you want to find the minimum from the all snapshots do this:
-    # a.calcAllSnapshotFilesFor_2_type_Models_single()
-    # # a.calcAllSnapshotFilesFor_3_type_Models_single()
+    # a.calcAllSnapshotFiles_temperature()
     # # if you want to check only one snapshot do this:
     # # a.calcSelectedSnapshotFile()
+
+
+    # start global search of Two-model combination:
+    a = FTR_gulp_to_feff_A_model_base()
+    a.weight_R_factor_FTR = 1.0
+    a.weight_R_factor_chi = 0.0
+    a.scale_theory_factor_FTR = 0.81
+    a.scale_experiment_factor_FTR = 1.0
+
+    # a.model_A.numberOfSerialEquivalentAtoms = 5
+    # a.model_B.numberOfSerialEquivalentAtoms = 2
+    # a.model_C.numberOfSerialEquivalentAtoms = 3
+    a.model_A.is_GUI = True
+    a.model_B.is_GUI = True
+    a.model_C.is_GUI = True
+
+    #  change the user name, which parameters for xftf transformation you want to use:
+    a.user = 'ID'
+    # change tha sample preparation method:
+    a.sample_preparation_mode = '450'
+    # if you want compare with the theoretical average, do this:
+    # a.calcAllSnapshotFiles()
+
+    # for debug and profiling:
+    a.saveDataToDisk = True
+
+    #  if you want to find the minimum from the all snapshots do this:
+    a.calcAllSnapshotFilesFor_2_type_Models_single()
+    # a.calcAllSnapshotFilesFor_3_type_Models_single()
+    # if you want to check only one snapshot do this:
+    # a.calcSelectedSnapshotFile()
 
 
     # # start calculate only snapshot file:

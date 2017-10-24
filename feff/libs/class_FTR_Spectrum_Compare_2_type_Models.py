@@ -218,13 +218,15 @@ if __name__ == '__main__':
     a.scale_theory_factor_FTR = 0.81
     a.scale_experiment_factor_FTR = 1.0
 
-    a.model_A.numberOfSerialEquivalentAtoms = 2
-    a.model_B.numberOfSerialEquivalentAtoms = 12
+    # a.model_A.numberOfSerialEquivalentAtoms = 2
+    # a.model_B.numberOfSerialEquivalentAtoms = 12
+    a.model_A.is_GUI = True
+    a.model_B.is_GUI = True
 
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
     # change tha sample preparation method:
-    a.sample_preparation_mode = '450'
+    a.sample_preparation_mode = 'AG'
     # if you want compare with the theoretical average, do this:
     # a.calcAllSnapshotFiles()
 
