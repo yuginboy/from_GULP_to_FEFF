@@ -1,13 +1,14 @@
-# from_GULP_to_FEFF
 ---
+# from_GULP_to_FEFF
+
 1. Convert GULP's MD simulation output *.history files to the **FEFF** input files, **PWscf** input, **XYZ**, **XSF** and for **STEM** files.
 1. Calculate the average **_chi(k)_** spectrum [average from all snapshots]
 1. Calculate the average **_xyz_** coordinates [average from all snapshots]
 1. Calculate the **RDF** - radial distribution function [from all snapshots]
-***
 
-### Compare theory spectra with experimental data set:
 ___
+### Compare theory spectra with experimental data set:
+
 1. Calculate the linear compositions in **_k_** and/or **_r_** spaces between serial snapshots [from all snapshots]
 1. Calculate the **R**-factros (in **_k_** and **_r_** spaces)
 1. Find the minimum **R**-factor snapshots composition (minimizing a multivariable function by using **BFGS** or **Differential evolution** methods)
