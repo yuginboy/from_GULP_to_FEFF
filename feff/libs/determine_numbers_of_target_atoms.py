@@ -1,7 +1,7 @@
 '''
 * Created by Zhenia Syryanyy (Yevgen Syryanyy)
 * e-mail: yuginboy@gmail.com
-* License: this code is in GPL license
+* License: this code is under GPL license
 * Last modified: 2017-10-24
 '''
 import re
@@ -14,7 +14,7 @@ class TargetAtom():
 
     def read_cfg_file(self):
         pattern = self.atom_type + '='
-        self.number_of_target_atoms = 0
+        self.number_of_target_atoms = None
         if os.path.isfile(self.path_to_cfg_file):
             with open(self.path_to_cfg_file, 'r') as f:
                 for line in f:
@@ -30,7 +30,8 @@ class TargetAtom():
     def get_number_of_target_atoms(self):
         if self.number_of_target_atoms is None:
             self.read_cfg_file()
-            return int(self.number_of_target_atoms)
+            if self.number_of_target_atoms is not None:
+                return int(self.number_of_target_atoms)
         else:
             return int(self.number_of_target_atoms)
 

@@ -6,7 +6,7 @@
 
  author: Zhenia Syriany (Yevgen Syryanyy)
  e-mail: yuginboy@gmail.com
- License: this code is in the GPL license
+ License: this code is under the GPL license
  Last modified: 2016-07-27
 '''
 "Main file for run feff calculation package"

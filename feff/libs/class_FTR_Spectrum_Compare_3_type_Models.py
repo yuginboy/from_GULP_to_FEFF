@@ -1,7 +1,7 @@
 '''
 * Created by Zhenia Syryanyy (Yevgen Syryanyy)
 * e-mail: yuginboy@gmail.com
-* License: this code is in GPL license
+* License: this code is under GPL license
 * Last modified: 2017-08-24
 '''
 

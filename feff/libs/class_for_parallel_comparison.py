@@ -1,7 +1,7 @@
 '''
 * Created by Zhenia Syryanyy (Yevgen Syryanyy)
 * e-mail: yuginboy@gmail.com
-* License: this code is in GPL license
+* License: this code is under GPL license
 * Last modified: 2017-07-12
 '''
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
@@ -126,10 +126,11 @@ class Model_for_spectra():
         a_cfg.path_to_cfg_file = os.path.join(os.path.dirname(dir_path), 'atoms.cfg')
         self.numberOfSerialEquivalentAtoms = a_cfg.get_number_of_target_atoms()
         a_cfg.print_info()
-
-        txt_info = "selected model has\nN={} {} atoms".format(
+        if self.numberOfSerialEquivalentAtoms is not None:
+            txt_info = "selected model has\nN={} {} atoms".format(
             self.numberOfSerialEquivalentAtoms, self.target_atom_type)
-        messagebox.showinfo("info", txt_info)
+            messagebox.showinfo("info", txt_info)
+
         root.update()
         return dir_path
 
@@ -1303,9 +1304,11 @@ class FTR_gulp_to_feff_A_model_base():
         self.numberOfSerialEquivalentAtoms = a_cfg.get_number_of_target_atoms()
         a_cfg.print_info()
 
-        txt_info = "selected model has\nN={} Mn atoms".format(
-            self.numberOfSerialEquivalentAtoms)
-        messagebox.showinfo("info", txt_info)
+        if self.numberOfSerialEquivalentAtoms is not None:
+            txt_info = "selected model has\nN={} {} atoms".format(
+            self.numberOfSerialEquivalentAtoms, self.target_atom_type)
+            messagebox.showinfo("info", txt_info)
+
         root.update()
         return dir_path
 

@@ -1,7 +1,7 @@
 """
 * Created by Zhenia Syryanyy (Yevgen Syryanyy)
 * e-mail: yuginboy@gmail.com
-* License: this code is in GPL license
+* License: this code is under GPL license
 * Last modified: 2017-02-28
 """
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 5
+    a.parallel_job_numbers = 2
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFrom_2_type_Models_parallel()
