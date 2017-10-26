@@ -42,7 +42,7 @@ def create_data_folder(main_folder_path, first_part_of_folder_name = ''):
     create directory
     :param main_folder_path: path to the main project folder
     :return: full path to the new directory
-    return folder path like: main_folder_path + first_part_of_folder_name + '%04d' % i
+    return folder path like: main_folder_path + first_part_of_folder_name
     '''
 
     out_data_folder_path = os.path.join(main_folder_path, first_part_of_folder_name)
@@ -50,6 +50,18 @@ def create_data_folder(main_folder_path, first_part_of_folder_name = ''):
         os.makedirs(out_data_folder_path, exist_ok=True)
     return  out_data_folder_path
 
+def listOfFolders(dirToScreens):
+    '''
+    return only the names of the folders in directory
+    :param folder:
+    :return:
+    '''
+    '''
+    :param dirToScreens: from which directory you want to take a list of the files
+    :return:
+    '''
+    files = [f for f in os.listdir(dirToScreens) if os.path.isdir(os.path.join(dirToScreens,f))]
+    return sorted(files)
 
 def listOfFiles(dirToScreens):
     '''
