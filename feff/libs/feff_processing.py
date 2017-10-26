@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-
+'''
+* Created by Pavlo Konstantynov
+* Modified by Zhenia Syryanyy (Yevgen Syryanyy)
+'''
 import timeit
 import numpy as np
 from numpy import (pi, arange, zeros, ones, sin, cos,

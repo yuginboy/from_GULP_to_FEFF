@@ -1,3 +1,8 @@
+'''
+* Created by Pavlo Konstantynov
+* Modified by Zhenia Syryanyy (Yevgen Syryanyy)
+'''
+
 import numpy as np
 import periodictable as pd
 from libs.dir_and_file_operations import createUniqFile, createUniqFile_from_idx

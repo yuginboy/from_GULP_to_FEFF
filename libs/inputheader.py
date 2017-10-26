@@ -1,4 +1,6 @@
-
+'''
+* Created by Pavlo Konstantynov
+'''
 line0 = ((' HOLE 1   1.0   *  Mn K edge , MniB-1Mn-0V\n\n'),
          (' *         mphase,mpath,mfeff,mchi\n'),
          (' CONTROL   1      1     1     1\n'),

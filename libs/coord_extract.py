@@ -1,3 +1,7 @@
+'''
+* Created by Pavlo Konstantynov
+* Modified by Zhenia Syryanyy (Yevgen Syryanyy)
+'''
 import numpy as np
 import re
 import os, sys

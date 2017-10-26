@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+'''
+* Created by Pavlo Konstantynov
+* Modified by Zhenia Syryanyy (Yevgen Syryanyy)
+* e-mail: yuginboy@gmail.com
+* License: this code is under GPL license
+* Last modified: 2017-10-26
+'''
 
 import re
 import tkinter as tk

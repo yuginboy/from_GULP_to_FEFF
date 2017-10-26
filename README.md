@@ -21,5 +21,5 @@
 
 ---
 ### Authors
-1. **Yevgen Syryanyy** [_main contributor_]
+1. **Zhenia Syryanyy** [_**Yevgen Syryanyy**_, _main contributor_]
 1. Pavlo Konstantynov

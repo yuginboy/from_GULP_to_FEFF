@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-
+'''
+* Created by Pavlo Konstantynov
+* Modified by Zhenia Syryanyy (Yevgen Syryanyy)
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm

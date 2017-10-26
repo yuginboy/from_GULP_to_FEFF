@@ -1,3 +1,7 @@
+'''
+* Created by Pavlo Konstantynov
+* Modified by Zhenia Syryanyy (Yevgen Syryanyy)
+'''
 import os
 import numpy as np
 import matplotlib
