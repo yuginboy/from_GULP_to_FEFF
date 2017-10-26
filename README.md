@@ -11,7 +11,7 @@
 ---
 ### Compare theory spectra with experimental data set:
 
-1. Calculate the linear compositions in **_k_** and/or **_r_** spaces between serial snapshots [from all snapshots]
+1. Calculate the linear compositions in **_k_** and/or **_r_** spaces between serial snapshots [_from all snapshots_]
 1. Calculate the **R**-factros (in **_k_** and **_r_** spaces)
 1. Find the minimum **R**-factor snapshots composition (minimizing a multivariable function by using **BFGS** or **Differential evolution** methods)
 1. Compare 2 and 3 models with an experiment and find the best linear combination between these models. (Ex. model **A** - _monomer_, model **B** - _dimer_, and best fit result is: **0.75** * _monomer_ + **0.25** *  _dimer_)
