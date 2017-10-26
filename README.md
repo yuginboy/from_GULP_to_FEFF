@@ -19,3 +19,6 @@
 1. **_RAM_** disk could be used for accelerate calculation (_user choice_)
 1. [**_numba_**](https://numba.pydata.org/) library is using for a calculation speed increasing
 
+### Authors
+1. **Yevgen Syryanyy** [_main contributor_]
+1. Pavlo Konstantynov
