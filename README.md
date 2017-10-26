@@ -1,12 +1,12 @@
 
-# from_GULP_to_FEFF (GNU GPL v.3)
+# from_GULP_to_FEFF ([GNU GPLv3](http://gplv3.fsf.org/))
 ---
 ### Automatic [FEFF](http://monalisa.phys.washington.edu/feffproject-feff.html)  simulation and different file formats conversion 
 1. Convert [**GULP**'s](https://gulp.curtin.edu.au/gulp/overview.cfm) **MD** simulation output *.history files to the **FEFF** input files, [**PWscf**](http://www.quantum-espresso.org/) input, **XYZ**, **XSF** and for **STEM** files.
-1. automatic **FEFF** calculations for all created **FEFF** input files
-1. Calculate the average **_chi(k)_** spectrum [average from all snapshots]
-1. Calculate the average **_xyz_** coordinates [average from all snapshots]
-1. Calculate the **RDF** - radial distribution function [from all snapshots]
+1. automatic **FEFF** calculations for all created **FEFF** input files (_serial and parallel realization_)
+1. Calculate the average **_chi(k)_** spectrum [_average from all snapshots_]
+1. Calculate the average **_xyz_** coordinates [_average from all snapshots_]
+1. Calculate the **RDF** - radial distribution function [_from all snapshots_]
 
 ---
 ### Compare theory spectra with experimental data set:
