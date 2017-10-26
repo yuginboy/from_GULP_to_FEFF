@@ -3,8 +3,8 @@
 ---
 ### Automatic EXAFS [FEFF](http://monalisa.phys.washington.edu/feffproject-feff.html)  simulation and different file formats conversion 
 1. Convert [**GULP**'s](https://gulp.curtin.edu.au/gulp/overview.cfm) **MD** simulation output *.history files to the **FEFF** input files, [**PWscf**](http://www.quantum-espresso.org/) input, **XYZ**, **XSF** and for **STEM** files.
-1. automatic EXAFS **FEFF** calculations for all created **FEFF** input files (_serial and parallel realization_)
-1. Calculate the average **_chi(k)_** spectrum [_average from all snapshots_]
+1. Automatic EXAFS **FEFF** calculations for all created **FEFF** input files (_serial and parallel realization_)
+1. Calculate the average **_chi(k)_** spectrum [_average from all snapshots_, Ex: in standard mode of GULP's input file after MD simulation we get 2500 snapshots or different crystallic structures which are correspond to 2500 time steps]
 1. Calculate the average **_xyz_** coordinates [_average from all snapshots_]
 1. Calculate the **RDF** - radial distribution function [_from all snapshots_]
 
