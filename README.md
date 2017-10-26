@@ -14,7 +14,7 @@
 1. Calculate the linear compositions in **_k_** and/or **_r_** spaces between serial snapshots [_from all snapshots_]
 1. Calculate the **R**-factros (in **_k_** and **_r_** spaces)
 1. Find the minimum **R**-factor snapshots composition (minimizing a multivariable function by using **BFGS** or **Differential evolution** methods)
-1. Compare 2 and 3 models with an experiment and find the best linear combination between these models. (Ex. model **A** - _monomer_, model **B** - _dimer_, and best fit result is: **0.75** * _monomer_ + **0.25** *  _dimer_)
+1. Compare 2 and 3 models with an experiment and find the best linear combination between these models. (Ex. for interpretation EXAFS spectra for bulk material we used two models fit, model **A** - _monomer_, model **B** - _dimer_, and got the best fit result: **0.75** * _monomer_ + **0.25** *  _dimer_, which could be iterpreted like: in bulk material we have 75% of _monomer_'s phase and 25% of _dimer_'s phase)
 1. Calculation procedures have serial and parallel ([**_pathos_**](https://pypi.python.org/pypi/pathos) library) realization
 1. **_RAM_** disk could be used for accelerate calculation (_user choice_)
 1. [**_numba_**](https://numba.pydata.org/) library is using for a calculation speed increasing
