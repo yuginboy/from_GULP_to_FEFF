@@ -1201,6 +1201,7 @@ class FTR_gulp_to_feff_A_model_base():
         print('{}'.format(self.minimum.snapshotName))
         runtime = timer() - start
         print("runtime is {0:f} seconds".format(runtime))
+        plt.close()
 
         # # store table to ASCII file:
         # self.table.outDirPath = self.outMinValsDir
