@@ -45,8 +45,14 @@ class AutomaticCompare:
         self.dir_path_for_calc_result_base = ''
         self.dir_path_for_calc_result_current = ''
 
-        # self.list_of_prep_mode_params_for_calc = ['250', '350', '450']
-        self.list_of_prep_mode_params_for_calc = ['AG']
+        self.list_of_prep_mode_params_for_calc = ['250', '350', '450']
+        self.dict_of_model_constraints_name_pattern = odict([
+            ('AG', ['MnI_caseB', 'Monomer']),
+            ('250', ['MnI_caseB', 'Monomer']),
+            ('350', ['MnYM', 'Monomer']),
+            ('450', ['MnYM', 'Monomer']),
+                                                ])
+        # self.list_of_prep_mode_params_for_calc = ['AG']
 
     def load_models_to_dict(self):
         tmp_obj = TargetAtom()
@@ -75,6 +81,23 @@ class AutomaticCompare:
         self.dir_path_for_calc_result_current = create_data_folder(self.dir_path_for_calc_result_base,
                                                                    first_part_of_folder_name=name_part)
 
+    def check_name_pattern_constraints(self, prep_mode, name_1, name_2):
+        n = len(self.dict_of_model_constraints_name_pattern[prep_mode])
+        tmp_list = self.dict_of_model_constraints_name_pattern[prep_mode]
+        for ww in tmp_list:
+            if ww in name_1:
+                for val in tmp_list:
+                    if (val in name_1 and val not in name_2) or (val in name_2 and val not in name_1):
+                        if val in name_2:
+                            return True
+            if ww in name_2:
+                for val in tmp_list:
+                    if (val in name_1 and val not in name_2) or (val in name_2 and val not in name_1):
+                        if val in name_1:
+                            return True
+        return False
+
+
     def start_calculation(self):
         idx = 0
         for current_prep_mode in self.list_of_prep_mode_params_for_calc:
@@ -94,25 +117,27 @@ class AutomaticCompare:
 
                 for k in range(i+1, n):
 
-                    idx += 1
                     print('i = {}, k = {}, i+k = {}, idx = {}'.format(i, k, i+k+1, idx))
                     name2 = self.list_of_models[k]['name']
                     path2 = self.list_of_models[k]['feff.inp folder']
                     self.obj.model_B.projectWorkingFEFFoutDirectory = path2
-
-                    print('idx = {}, A = {}, B = {}, prep_mode = {}, user = {}'.format(
+                    if self.check_name_pattern_constraints(current_prep_mode, name1, name2):
+                        idx += 1
+                        print('idx = {}, A = {}, B = {}, prep_mode = {}, user = {}'.format(
                         idx, name1, name2, current_prep_mode, self.obj.user))
-                    current_obj = copy.deepcopy(self.obj)
-                    current_obj.findBestSnapshotsCombinationFrom_2_type_Models_parallel()
-                    del current_obj
+
+                        # calculatting part:
+                        current_obj = copy.deepcopy(self.obj)
+                        current_obj.findBestSnapshotsCombinationFrom_2_type_Models_parallel()
+                        del current_obj
 
 
 if __name__ == '__main__':
     print('-> you run ', __file__, ' file in a main mode')
 
     a = AutomaticCompare()
-    a.dir_path_of_models = '/mnt/soliddrive/yugin/models/for_testing/'
-    # a.dir_path_of_models = '/mnt/soliddrive/yugin/models/best_models/'
+    # a.dir_path_of_models = '/mnt/soliddrive/yugin/models/for_testing/'
+    a.dir_path_of_models = '/mnt/soliddrive/yugin/models/best_models/'
     a.load_models_to_dict()
     a.dir_path_for_calc_result_base = '/mnt/soliddrive/yugin/rslt_best_models/'
     print(a.dir_path_for_calc_result_current)

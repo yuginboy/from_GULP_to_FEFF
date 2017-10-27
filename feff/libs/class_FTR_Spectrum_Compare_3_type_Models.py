@@ -7,6 +7,7 @@
 
 from feff.libs.class_Spectrum import Spectrum, GraphElement, TableData, BaseData
 from feff.libs.class_for_parallel_comparison import Model_for_spectra, FTR_gulp_to_feff_A_model_base
+from feff.libs.dir_and_file_operations import delete_all_subdirs_in_directory
 import os
 import datetime
 from timeit import default_timer as timer
@@ -203,6 +204,7 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         f = open(txt_file_name, 'x')
         f.write(txt)
         print('Resulting information have been saved in: ', txt_file_name)
+        delete_all_subdirs_in_directory(outDirectoryForTowModelsFitResults)
 
 
 if __name__ == '__main__':
