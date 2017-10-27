@@ -6,6 +6,7 @@
 '''
 import sys
 import os
+import shutil
 from io import StringIO
 
 
@@ -49,6 +50,17 @@ def create_data_folder(main_folder_path, first_part_of_folder_name = ''):
     if  not (os.path.isdir(out_data_folder_path)):
         os.makedirs(out_data_folder_path, exist_ok=True)
     return  out_data_folder_path
+
+def delete_all_subdirs_in_directory (dir_path):
+    '''
+    deleting all folders in directory but not files
+    :param dir_path:
+    :return:
+    '''
+    dir_list = os.scandir(dir_path)
+    for elem in dir_list:
+        if os.path.isdir(elem):
+            shutil.rmtree(elem)
 
 def listOfFolders(dirToScreens):
     '''
@@ -132,3 +144,4 @@ if __name__ == "__main__":
     print ('-> you run ',  __file__, ' file in a main mode' )
     runningScriptDir = os.path.dirname(os.path.abspath(__file__))
     print(get_folder_name(get_folder_name(runningScriptDir)))
+    # delete_all_subdirs_in_directory('/mnt/soliddrive/yugin/debug/result_debug/[Monomer]__[MnI_caseB]__[1mono1SR2VasIDVga1Vga4_MnGa1]__ID_(450)_0001/')

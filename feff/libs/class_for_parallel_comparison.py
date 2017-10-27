@@ -138,6 +138,12 @@ class Model_for_spectra():
         if self.is_GUI:
             return self.get_dir_path_by_GUI()
         else:
+            # get number of target atoms from the atoms.cfg file:
+            a_cfg = TargetAtom()
+            a_cfg.atom_type = self.target_atom_type
+            a_cfg.path_to_cfg_file = os.path.join(os.path.dirname(self.projectWorkingFEFFoutDirectory), 'atoms.cfg')
+            self.numberOfSerialEquivalentAtoms = a_cfg.get_number_of_target_atoms()
+            a_cfg.print_info()
             return self.projectWorkingFEFFoutDirectory
 
 class FTR_gulp_to_feff_A_model_base():
@@ -1316,6 +1322,12 @@ class FTR_gulp_to_feff_A_model_base():
         if self.is_GUI:
             return self.get_dir_path_by_GUI()
         else:
+            # get number of target atoms from the atoms.cfg file:
+            a_cfg = TargetAtom()
+            a_cfg.atom_type = self.target_atom_type
+            a_cfg.path_to_cfg_file = os.path.join(os.path.dirname(self.projectWorkingFEFFoutDirectory), 'atoms.cfg')
+            self.numberOfSerialEquivalentAtoms = a_cfg.get_number_of_target_atoms()
+            a_cfg.print_info()
             return self.projectWorkingFEFFoutDirectory
 
     def calcAllSnapshotFiles_temperature(self):

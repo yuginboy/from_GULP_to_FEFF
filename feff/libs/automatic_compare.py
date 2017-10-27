@@ -9,6 +9,7 @@ from feff.libs.class_FTR_Spectrum_Compare_2_type_Models import FTR_gulp_to_feff_
 from collections import OrderedDict as odict
 from feff.libs.dir_and_file_operations import listOfFolders, create_data_folder
 from feff.libs.determine_numbers_of_target_atoms import TargetAtom
+import copy
 
 
 class AutomaticCompare:
@@ -27,6 +28,7 @@ class AutomaticCompare:
 
         self.obj.model_A.is_GUI = False
         self.obj.model_B.is_GUI = False
+        self.obj.is_GUI = False
 
         #  change the user name, which parameters for xftf transformation you want to use:
         self.obj.user = 'ID'
@@ -36,13 +38,15 @@ class AutomaticCompare:
         # for debug and profiling:
         self.obj.saveDataToDisk = True
 
-        self.obj.parallel_job_numbers = 2
+        self.obj.parallel_job_numbers = 10
 
         self.list_of_models = odict()
         self.model_feff_inp_folder_name = 'feff__0001'
-        self.dir_path_for_calc_result = ''
+        self.dir_path_for_calc_result_base = ''
+        self.dir_path_for_calc_result_current = ''
 
-        self.list_of_prep_mode_params_for_calc = ('250', '350', '450')
+        # self.list_of_prep_mode_params_for_calc = ['250', '350', '450']
+        self.list_of_prep_mode_params_for_calc = ['AG']
 
     def load_models_to_dict(self):
         tmp_obj = TargetAtom()
@@ -68,29 +72,39 @@ class AutomaticCompare:
         :return:
         '''
         name_part = '{}_({})'.format(self.obj.user, self.obj.sample_preparation_mode)
-        self.dir_path_for_calc_result = create_data_folder(self.dir_path_for_calc_result,
-                                                           first_part_of_folder_name=name_part)
+        self.dir_path_for_calc_result_current = create_data_folder(self.dir_path_for_calc_result_base,
+                                                                   first_part_of_folder_name=name_part)
 
     def start_calculation(self):
         idx = 0
         for current_prep_mode in self.list_of_prep_mode_params_for_calc:
             self.obj.sample_preparation_mode = current_prep_mode
+            # create unique output folder for results:
             self.create_uniq_result_folder()
+            self.obj.projectWorkingFEFFoutDirectory = self.dir_path_for_calc_result_current
+
             n = len(self.list_of_models)
+            print('========================================\n')
+            print(f'There are n = {n} models in directory')
 
-            for i in range(n):
-                print('i = {}'.format(i))
-                if (i > 1) and (i < n-1):
-                    for k in range(n-i):
-                        idx += 1
-                        # path1 = self.list_of_models[i]['feff.inp folder']
-                        # path2 = self.list_of_models[i+k]['feff.inp folder']
+            for i in range(n-1):
+                name1 = self.list_of_models[i]['name']
+                path1 = self.list_of_models[i]['feff.inp folder']
+                self.obj.model_A.projectWorkingFEFFoutDirectory = path1
 
-                        path1 = self.list_of_models[i]['name']
-                        path2 = self.list_of_models[i+k]['name']
+                for k in range(i+1, n):
 
+                    idx += 1
+                    print('i = {}, k = {}, i+k = {}, idx = {}'.format(i, k, i+k+1, idx))
+                    name2 = self.list_of_models[k]['name']
+                    path2 = self.list_of_models[k]['feff.inp folder']
+                    self.obj.model_B.projectWorkingFEFFoutDirectory = path2
 
-                        print('{}_{}__{}__{}'.format(idx, path1, path2, current_prep_mode))
+                    print('idx = {}, A = {}, B = {}, prep_mode = {}, user = {}'.format(
+                        idx, name1, name2, current_prep_mode, self.obj.user))
+                    current_obj = copy.deepcopy(self.obj)
+                    current_obj.findBestSnapshotsCombinationFrom_2_type_Models_parallel()
+                    del current_obj
 
 
 if __name__ == '__main__':
@@ -98,8 +112,8 @@ if __name__ == '__main__':
 
     a = AutomaticCompare()
     a.dir_path_of_models = '/mnt/soliddrive/yugin/models/for_testing/'
+    # a.dir_path_of_models = '/mnt/soliddrive/yugin/models/best_models/'
     a.load_models_to_dict()
-    a.dir_path_for_calc_result = '/mnt/soliddrive/yugin/rslt_best_models/'
-    a.create_uniq_result_folder()
-    print(a.dir_path_for_calc_result)
+    a.dir_path_for_calc_result_base = '/mnt/soliddrive/yugin/rslt_best_models/'
+    print(a.dir_path_for_calc_result_current)
     a.start_calculation()

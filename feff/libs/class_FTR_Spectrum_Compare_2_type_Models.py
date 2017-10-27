@@ -11,8 +11,7 @@ import datetime
 from timeit import default_timer as timer
 import copy
 from shutil import copyfile
-from feff.libs.dir_and_file_operations import runningScriptDir, get_folder_name, get_upper_folder_name, \
-    listOfFilesFN_with_selected_ext, create_out_data_folder, create_data_folder
+from feff.libs.dir_and_file_operations import delete_all_subdirs_in_directory
 from feff.libs.class_StoreAndLoadVars import StoreAndLoadVars
 from feff.libs.class_SpectraSet import SpectraSet
 import matplotlib.pyplot as plt
@@ -198,6 +197,7 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         f = open(txt_file_name, 'x')
         f.write(txt)
         print('Resulting information have been saved in: ', txt_file_name)
+        delete_all_subdirs_in_directory(outDirectoryForTowModelsFitResults)
 
 
 if __name__ == '__main__':
