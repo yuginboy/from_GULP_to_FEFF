@@ -226,14 +226,14 @@ if __name__ == '__main__':
     #  change the user name, which parameters for xftf transformation you want to use:
     a.user = 'ID'
     # change tha sample preparation method:
-    a.sample_preparation_mode = 'AG'
+    a.sample_preparation_mode = '250'
     # if you want compare with the theoretical average, do this:
     # a.calcAllSnapshotFiles()
 
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 2
+    a.parallel_job_numbers = 10
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFrom_2_type_Models_parallel()

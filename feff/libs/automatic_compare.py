@@ -38,14 +38,15 @@ class AutomaticCompare:
         # for debug and profiling:
         self.obj.saveDataToDisk = True
 
-        self.obj.parallel_job_numbers = 10
+        self.obj.parallel_job_numbers = 5
 
         self.list_of_models = odict()
         self.model_feff_inp_folder_name = 'feff__0001'
         self.dir_path_for_calc_result_base = ''
         self.dir_path_for_calc_result_current = ''
 
-        self.list_of_prep_mode_params_for_calc = ['250', '350', '450']
+        self.list_of_prep_mode_params_for_calc = ['350', '450']
+        # self.list_of_prep_mode_params_for_calc = ['250', '350', '450']
         self.dict_of_model_constraints_name_pattern = odict([
             ('AG', ['MnI_caseB', 'Monomer']),
             ('250', ['MnI_caseB', 'Monomer']),

@@ -12,6 +12,7 @@ from itertools import cycle
 from io import StringIO
 import inspect
 import numpy as np
+from scipy.optimize import differential_evolution
 import matplotlib.gridspec as gridspec
 from matplotlib import pylab
 import matplotlib.pyplot as plt
@@ -26,6 +27,7 @@ from scipy.signal import savgol_filter
 from feff.libs.fit_current_curve import return_fit_param, func, f_PM, f_diff_PM_for_2_T, \
     linearFunc, f_PM_with_T, f_SPM_with_T
 from scipy.optimize import curve_fit, leastsq
+from feff.libs.math_libs import approx_errors
 
 
 g_J_Mn2_plus = 5.92
@@ -183,6 +185,8 @@ class StructBase:
         self.font_size = 18
         self.y_label = '$M(A/m)$'
         self.x_label = '$B(T)$'
+
+        self.dict_of_magnetic_phases = odict()
 
     def define_Mn_type_variables(self):
         '''
@@ -358,6 +362,8 @@ class StructBase:
         # self.for_fit = deepcopy(self.prepared_raw)
         self.line.do_plot = True
 
+
+
     def fit_PM_single_phase(self):
         # do a fit procedure:
         # indx = np.argwhere(self.fit.magnetic_field >= 3)
@@ -417,6 +423,93 @@ class StructBase:
             Mn_type=self.Mn_type,
             spin_type=self.spin_type_cfg,
             J=float(self.J_total_momentum)))
+
+    def multi_phase_PM_func(self, n_concentration):
+        # calc Brillouin function for multi-phase sample
+        num = len(self.dict_of_magnetic_phases)
+        len_of_x = len(self.forFit_x)
+        #concentration of Mn atoms n[1/m^3*1e27]
+        out = np.zeros(len_of_x)
+        for i in self.dict_of_magnetic_phases:
+            val = self.dict_of_magnetic_phases[i]
+            n = n_concentration[i]
+            J = val['total momentum']
+            g = val['g-factor']
+            tmp = np.zeros(len_of_x)
+            tmp = f_PM(self.forFit_x, n, J=J, g_factor=g)
+            # fight with uncertainty in 0 vicinity:
+            tmp[self.zeroIndex] = 0
+            out += tmp
+        return out
+
+    def fit_PM_multi_phase(self):
+        # do a fit procedure for the multi-phases magnetic material:
+        # indx = np.argwhere(self.fit.magnetic_field >= 3)
+        indx = (np.abs(self.prepared_raw.magnetic_field) >= self.magnetic_field_value_for_fit)
+        # indx = ((self.prepared_raw.magnetic_field) >= self.magnetic_field_value_for_fit)
+        self.for_fit.magnetic_field = self.prepared_raw.magnetic_field[indx]
+        self.for_fit.magnetic_moment = self.prepared_raw.magnetic_moment[indx]
+        self.forFit_x = (self.g_factor * self.J_total_momentum * mu_Bohr * self.for_fit.magnetic_field) \
+                        / k_b / self.fit.temperature
+        self.forFit_y = self.for_fit.magnetic_moment
+
+        num = len(self.dict_of_magnetic_phases)
+        len_of_x = len(self.forFit_x)
+        # try to fit concentration of Mn atoms n[1/m^3*1e27]
+
+        # construct tmp function for a minimization procedure:
+        def fun_tmp(n_concentration):
+            out = np.zeros(len_of_x)
+            out = self.multi_phase_PM_func(n_concentration)
+            return self.get_R_factor(raw=self.forFit_y, fit=out)
+
+        # create bounds:
+        bounds = []
+        for i in range(num):
+            bounds.append((0, 10))
+
+        res = differential_evolution(fun_tmp, bounds)
+
+        self.concentration_ParaMagnetic = res.x #[1/m^3*1e27]
+        s2 = self.get_std(raw=self.forFit_y,
+                          fit=self.multi_phase_PM_func(self.concentration_ParaMagnetic))
+        se = approx_errors(fun_tmp, self.concentration_ParaMagnetic)
+        std = np.sqrt(s2) * se
+        self.concentration_ParaMagnetic_error = std
+
+        self.fit.magnetic_moment = self.multi_phase_PM_func(self.concentration_ParaMagnetic)
+        # fight with uncertainty in 0 vicinity:
+        self.fit.magnetic_moment[self.zeroIndex] = 0
+
+        self.calc_R_factor(raw=self.prepared_raw.magnetic_moment, fit=self.fit.magnetic_moment)
+        # self.fit.label = \
+        # '\nfit [$R=\\mathbf{{{R:1.3}}}\%$, $\sigma=\\mathbf{{{std:1.3}}}$] ' \
+        # '\n$g_{{factor}}=\\mathbf{{{g_f:1.3}}}$, T={temper:2.1g}K\n'\
+        # '$J({Mn_type}$, ${spin_type})=\\mathbf{{{J:1.3}}}$ $[\mu_{{Bohr}}]$'\
+        # '\n$n_{{{Mn_type}}}=({conc:1.4g}\\pm{conc_error:1.4g})\\ast10^{{27}} [1/m^3]$' \
+        # '\n or $\\mathbf{{{conc_GaAs:1.3g}}}\%$ of $n(GaAs)$'.format(
+        #         g_f=float(self.g_factor),
+        #         R=float(self.R_factor),
+        #         std=float(self.std),
+        #         temper=float(self.fit.temperature),
+        #         Mn_type=self.Mn_type,
+        #         spin_type=self.spin_type_cfg,
+        #         J=float(self.J_total_momentum),
+        #         conc=float(self.concentration_ParaMagnetic),
+        #         conc_error=float(np.round(self.concentration_ParaMagnetic_error,4)),
+        #         conc_GaAs=float(self.concentration_ParaMagnetic / 22.139136 * 100),
+        # )
+        #
+        # print('->> fit PM (single PM phase) have been done. '
+        #       'For T = {0} K obtained n = {1:1.3g} *1e27 [1/m^3] or {2:1.3g} % of the n(GaAs)' \
+        #       .format(self.raw.temperature,
+        #               self.concentration_ParaMagnetic,
+        #               self.concentration_ParaMagnetic / 22.139136 * 100))
+        # print('->> R = {R_f:1.5g} %'.format(R_f=self.R_factor))
+        # print('->> J[{Mn_type}, {spin_type}] = {J:1.3} [mu(Bohr)]'.format(
+        #     Mn_type=self.Mn_type,
+        #     spin_type=self.spin_type_cfg,
+        #     J=float(self.J_total_momentum)))
 
     def set_default_line_params(self):
         self.raw.line_style = 'None'
