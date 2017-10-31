@@ -12,6 +12,7 @@ from libs.classes import Unitcell
 from feff.mainFEFF import feffCalcFun
 from feff_calc_from_inp_parallel import FEFF_parallel_calculation_class
 from feff.libs.determine_numbers_of_target_atoms import TargetAtom
+from settings import ram_disk_path
 
 limitNumOfSnapshots = 1e6
 
@@ -66,12 +67,12 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
                     k = 0
 
                 if k == 0:
-                    tegTmp = re.findall('[a-zA-Z]+|\d+', line)
+                    tegTmp = re.findall('[a-zA-Z]+\d*|\d+', line)
                     # tegTmp = re.findall('[a-zA-Z1-9]+|\d+', line)
-                    tegLine = tegTmp[0]
+                    tegLine = re.findall('[a-zA-Z]+', tegTmp[0])
                     localAtomNumber = np.asarray(tegTmp[1], dtype='int').tolist()
                     atomInSnapshot.atomIndex[localAtomNumber-1] = localAtomNumber# ex: =12
-                    atomInSnapshot.tag[localAtomNumber-1] = tegLine[0:2]#ex: =Mg
+                    atomInSnapshot.tag[localAtomNumber-1] = tegLine[0]#ex: =Mg
 
 
                 if k == 1:
@@ -195,7 +196,7 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
             MainObj.dirNameOut = atomInSnapshot.outDirFEFFCalc
             # use RAM-disk:
             MainObj.is_RAM_disk_exist = True
-            MainObj.path_to_RAM_disk = '/mnt/ramdisk/yugin/tmp'
+            MainObj.path_to_RAM_disk = ram_disk_path
             # set parallel jobs number:
             MainObj.parallel_job_numbers = int(parallel_job_numbers)
             # do parallel calculation with a pathos multiprocessing tool
