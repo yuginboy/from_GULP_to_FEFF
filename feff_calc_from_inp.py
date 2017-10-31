@@ -12,6 +12,10 @@ import numpy as np
 import datetime
 from timeit import default_timer as timer
 import copy
+from settings import (
+    path_to_exe,
+    ram_disk_path,
+)
 
 import matplotlib
 # Force matplotlib to not use any Xwindows backend.
@@ -43,10 +47,10 @@ class FEFF_calculation_class():
         # c      max number of unique potentials (potph) (nphx must be ODD to
         # c      avoid compilation warnings about alignment in COMMON blocks)
         #        parameter (nphx = 21) before it was: nphx = 7
-        self.path_to_feff_exe = 'wine cmd /C "/home/yugin/PycharmProjects/feff/exe/feff_84_2016-08-02.bat"'
+        self.path_to_feff_exe = path_to_exe
 
         self.is_RAM_disk_exist = True
-        self.path_to_RAM_disk = '/mnt/ramdisk/yugin/tmp'
+        self.path_to_RAM_disk = ram_disk_path
 
     def get_working_dir(self):
         # load directory with FEFF input files for calculation in parallel mode

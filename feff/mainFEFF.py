@@ -43,6 +43,8 @@ from feff.libs.dir_and_file_operations import create_out_data_folder, listOfFile
 from joblib import Parallel, delayed
 import multiprocessing
 
+from settings import path_to_exe
+
 # def runInParallel(*fns):
 #   proc = []
 #   for fn in fns:
@@ -80,7 +82,7 @@ def feffCalcFun(dataPath = '/home/yugin/VirtualboxShare/FEFF/load/60/', tmpPath 
     # c      max number of unique potentials (potph) (nphx must be ODD to
     # c      avoid compilation warnings about alignment in COMMON blocks)
     #        parameter (nphx = 21) before it was: nphx = 7
-    feff_exe = 'wine cmd /C "/home/yugin/PycharmProjects/feff/exe/feff_84_2016-08-02.bat"' # path to exe file of the feff program
+    feff_exe = feff_exe = path_to_exe # path to exe file of the feff program
 
 
     # outDirPath = os.path.join( '/home/yugin/VirtualboxShare/FEFF/out', folder_name )
