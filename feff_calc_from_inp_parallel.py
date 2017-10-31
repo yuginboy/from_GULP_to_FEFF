@@ -102,7 +102,7 @@ if __name__ == '__main__':
     MainObj.prepare_vars()
     # use RAM-disk:
     MainObj.is_RAM_disk_exist = True
-    MainObj.path_to_RAM_disk = '/mnt/ramdisk/yugin/tmp'
+    MainObj.path_to_RAM_disk = ram_disk_path
     # set parallel jobs number:
     MainObj.parallel_job_numbers = 5
     # do parallel calculation with a pathos multiprocessing tool
