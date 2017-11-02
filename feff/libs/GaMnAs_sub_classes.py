@@ -82,6 +82,17 @@ def number_density(rho = rho_GaAs, M = mass_Molar_kg_GaAs):
     return Navagadro*rho/M
 
 
+class MagneticPropertiesOfPhases:
+    def __init__(self):
+        self.concentration_ParaMagnetic = None
+        self.concentration_ParaMagnetic_error = None
+        self.J_total_momentum = 2.5
+        self.Mn_type = 'Mn2+'  # Mn2+ or Mn3+
+        self.spin_type_cfg = 'high'  # low or high
+        self.g_factor = g_e
+        self.mu_eff = g_J_Mn2_plus
+        self.info = ''
+
 class MagneticData:
     '''
     base class for store spectra
@@ -142,6 +153,11 @@ class StructBase:
         self.magnetic_field_step = 0.1 #[T]
         self.magnetic_field_minimum = 0
         self.magnetic_field_maximum = 0
+
+        # obj for saving params about unique phases in current material:
+        self.current_magnetic_phase_data = MagneticPropertiesOfPhases()
+
+        # main magnetic params for a structure which could be saved in unique phases:
         self.J_total_momentum = 2.5
         self.Mn_type = 'Mn2+' # Mn2+ or Mn3+
         self.spin_type_cfg = 'high' # low or high
@@ -186,6 +202,14 @@ class StructBase:
         self.y_label = '$M(A/m)$'
         self.x_label = '$B(T)$'
 
+        self.dict_of_magnetic_phases = odict()
+
+    def addDataToDict(self, current_data):
+        num = len(self.dict_of_magnetic_phases)
+        if isinstance(current_data, MagneticPropertiesOfPhases):
+            self.dict_of_magnetic_phases[num] = odict({'data': current_data})
+
+    def flushDictOfSpectra(self):
         self.dict_of_magnetic_phases = odict()
 
     def define_Mn_type_variables(self):
@@ -239,6 +263,16 @@ class StructBase:
         self.Mn_type = 'Mn3+'
         self.spin_type_cfg = 'low'
         self.define_Mn_type_variables()
+
+    def save_magnetic_params_to_current_phase_obj(self):
+        self.current_magnetic_phase_data.J_total_momentum = self.J_total_momentum
+        self.current_magnetic_phase_data.Mn_type = self.Mn_type
+        self.current_magnetic_phase_data.g_factor = self.g_factor
+        self.current_magnetic_phase_data.spin_type_cfg = self.spin_type_cfg
+        self.current_magnetic_phase_data.concentration_ParaMagnetic = self.concentration_ParaMagnetic
+        self.current_magnetic_phase_data.concentration_ParaMagnetic_error = self.concentration_ParaMagnetic_error
+        self.current_magnetic_phase_data.mu_eff = self.mu_eff
+
 
     def interpolate_data(self):
 
@@ -362,8 +396,6 @@ class StructBase:
         # self.for_fit = deepcopy(self.prepared_raw)
         self.line.do_plot = True
 
-
-
     def fit_PM_single_phase(self):
         # do a fit procedure:
         # indx = np.argwhere(self.fit.magnetic_field >= 3)
@@ -428,17 +460,24 @@ class StructBase:
         # calc Brillouin function for multi-phase sample
         num = len(self.dict_of_magnetic_phases)
         len_of_x = len(self.forFit_x)
+        # vector for magnetic calculation:
+        vec_x = np.zeros(len_of_x)
         #concentration of Mn atoms n[1/m^3*1e27]
         out = np.zeros(len_of_x)
         for i in self.dict_of_magnetic_phases:
             val = self.dict_of_magnetic_phases[i]
             n = n_concentration[i]
-            J = val['total momentum']
-            g = val['g-factor']
+            J = val['data'].J_total_momentum
+            g = val['data'].g_factor
+            Mn_type = val['data'].Mn_type
+            spin_type = val['data'].spin_type_cfg
             tmp = np.zeros(len_of_x)
-            tmp = f_PM(self.forFit_x, n, J=J, g_factor=g)
+            # create unique x-vector for Brillouin function:
+            vec_x = (g * J * mu_Bohr * self.for_fit.magnetic_field) \
+                        / k_b / self.fit.temperature
+            tmp = f_PM(vec_x, n, J=J, g_factor=g)
             # fight with uncertainty in 0 vicinity:
-            tmp[self.zeroIndex] = 0
+            # tmp[self.zeroIndex] = 0
             out += tmp
         return out
 
@@ -449,17 +488,18 @@ class StructBase:
         # indx = ((self.prepared_raw.magnetic_field) >= self.magnetic_field_value_for_fit)
         self.for_fit.magnetic_field = self.prepared_raw.magnetic_field[indx]
         self.for_fit.magnetic_moment = self.prepared_raw.magnetic_moment[indx]
-        self.forFit_x = (self.g_factor * self.J_total_momentum * mu_Bohr * self.for_fit.magnetic_field) \
-                        / k_b / self.fit.temperature
+
         self.forFit_y = self.for_fit.magnetic_moment
+        len_of_vec = len(self.forFit_y)
+        self.forFit_x = np.zeros(len_of_vec)
 
         num = len(self.dict_of_magnetic_phases)
-        len_of_x = len(self.forFit_x)
+
         # try to fit concentration of Mn atoms n[1/m^3*1e27]
 
         # construct tmp function for a minimization procedure:
         def fun_tmp(n_concentration):
-            out = np.zeros(len_of_x)
+            out = np.zeros(len_of_vec)
             out = self.multi_phase_PM_func(n_concentration)
             return self.get_R_factor(raw=self.forFit_y, fit=out)
 
@@ -479,27 +519,46 @@ class StructBase:
 
         self.fit.magnetic_moment = self.multi_phase_PM_func(self.concentration_ParaMagnetic)
         # fight with uncertainty in 0 vicinity:
-        self.fit.magnetic_moment[self.zeroIndex] = 0
+        # self.fit.magnetic_moment[self.zeroIndex] = 0
 
         self.calc_R_factor(raw=self.prepared_raw.magnetic_moment, fit=self.fit.magnetic_moment)
-        # self.fit.label = \
-        # '\nfit [$R=\\mathbf{{{R:1.3}}}\%$, $\sigma=\\mathbf{{{std:1.3}}}$] ' \
-        # '\n$g_{{factor}}=\\mathbf{{{g_f:1.3}}}$, T={temper:2.1g}K\n'\
-        # '$J({Mn_type}$, ${spin_type})=\\mathbf{{{J:1.3}}}$ $[\mu_{{Bohr}}]$'\
-        # '\n$n_{{{Mn_type}}}=({conc:1.4g}\\pm{conc_error:1.4g})\\ast10^{{27}} [1/m^3]$' \
-        # '\n or $\\mathbf{{{conc_GaAs:1.3g}}}\%$ of $n(GaAs)$'.format(
-        #         g_f=float(self.g_factor),
-        #         R=float(self.R_factor),
-        #         std=float(self.std),
-        #         temper=float(self.fit.temperature),
-        #         Mn_type=self.Mn_type,
-        #         spin_type=self.spin_type_cfg,
-        #         J=float(self.J_total_momentum),
-        #         conc=float(self.concentration_ParaMagnetic),
-        #         conc_error=float(np.round(self.concentration_ParaMagnetic_error,4)),
-        #         conc_GaAs=float(self.concentration_ParaMagnetic / 22.139136 * 100),
-        # )
-        #
+
+        # write label for plotting:
+        self.fit.label = \
+            '\nfit [$R=\\mathbf{{{R:1.3}}}\%$, $\sigma=\\mathbf{{{std:1.3}}}$], T={temper:2.1g}K\n '.format(
+                R=float(self.R_factor),
+                std=float(self.std),
+                temper=float(self.fit.temperature),
+            )
+        tmp_txt = ''
+        for i in self.dict_of_magnetic_phases:
+            val = self.dict_of_magnetic_phases[i]
+            n = self.concentration_ParaMagnetic[i]
+            n_std = self.concentration_ParaMagnetic_error[i]
+            J = val['data'].J_total_momentum
+            g = val['data'].g_factor
+            Mn_type = val['data'].Mn_type
+            spin_type = val['data'].spin_type_cfg
+            tmp_txt = 'phase {num_of_phase:}:\n'\
+            '$g_{{factor}}=\\mathbf{{{g_f:1.3}}}$, $J({Mn_type}$, ${spin_type})=\\mathbf{{{J:1.3}}}$ $[\mu_{{Bohr}}]$'\
+                .format(
+                num_of_phase = i,
+                g_f=float(g),
+                Mn_type=Mn_type,
+                J=float(J),
+                spin_type=spin_type,
+            )
+            tmp_txt += '\n$n_{{{Mn_type}}}=({conc:1.4g}\\pm{conc_error:1.4g})\\ast10^{{27}} [1/m^3]$' \
+                '\n or $\\mathbf{{{conc_GaAs:1.3g}}}\%$ of $n(GaAs)$\n'.format(
+                        Mn_type=Mn_type,
+                        spin_type=spin_type,
+                        conc=float(n),
+                        conc_error=float(np.round(n_std, 4)),
+                        conc_GaAs=float(n / 22.139136 * 100),
+                )
+
+        self.fit.label += tmp_txt
+
         # print('->> fit PM (single PM phase) have been done. '
         #       'For T = {0} K obtained n = {1:1.3g} *1e27 [1/m^3] or {2:1.3g} % of the n(GaAs)' \
         #       .format(self.raw.temperature,

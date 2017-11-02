@@ -169,6 +169,9 @@ class ConcentrationOfMagneticIons:
             data.magnetic_field_value_for_fit = 3
             data.fit_PM_single_phase()
             data.plot(ax=self.ax[1])
+            data.save_magnetic_params_to_current_phase_obj()
+            current_phase = deepcopy(data.current_magnetic_phase_data)
+            data.addDataToDict(current_phase)
 
             data.title = 'Single phase $Mn^{\\mathbf{2+\\Downarrow}}$ PM fit'
             data.set_Mn2_plus_low()
@@ -177,6 +180,9 @@ class ConcentrationOfMagneticIons:
             data.magnetic_field_value_for_fit = 3
             data.fit_PM_single_phase()
             data.plot(ax=self.ax[2])
+            data.save_magnetic_params_to_current_phase_obj()
+            current_phase = deepcopy(data.current_magnetic_phase_data)
+            data.addDataToDict(current_phase)
 
             data.title = 'Single phase $Mn^{\\mathbf{3+\\Downarrow}}$ PM fit'
             data.set_Mn3_plus_low()
@@ -185,6 +191,11 @@ class ConcentrationOfMagneticIons:
             data.magnetic_field_value_for_fit = 3
             data.fit_PM_single_phase()
             data.plot(ax=self.ax[3])
+            data.save_magnetic_params_to_current_phase_obj()
+            current_phase = deepcopy(data.current_magnetic_phase_data)
+            data.addDataToDict(current_phase)
+
+            data.fit_PM_multi_phase()
 
             self.struct_of_data[case_name[0]] = data
 
