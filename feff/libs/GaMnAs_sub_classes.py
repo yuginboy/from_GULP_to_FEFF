@@ -456,10 +456,10 @@ class StructBase:
             spin_type=self.spin_type_cfg,
             J=float(self.J_total_momentum)))
 
-    def multi_phase_PM_func(self, n_concentration):
+    def multi_phase_PM_func(self, n_concentration, magnetic_field, temperature, zero_index=None):
         # calc Brillouin function for multi-phase sample
         num = len(self.dict_of_magnetic_phases)
-        len_of_x = len(self.forFit_x)
+        len_of_x = len(magnetic_field)
         # vector for magnetic calculation:
         vec_x = np.zeros(len_of_x)
         #concentration of Mn atoms n[1/m^3*1e27]
@@ -473,11 +473,13 @@ class StructBase:
             spin_type = val['data'].spin_type_cfg
             tmp = np.zeros(len_of_x)
             # create unique x-vector for Brillouin function:
-            vec_x = (g * J * mu_Bohr * self.for_fit.magnetic_field) \
-                        / k_b / self.fit.temperature
-            tmp = f_PM(vec_x, n, J=J, g_factor=g)
+            vec_x = (g * J * mu_Bohr * magnetic_field) \
+                        / k_b / temperature
+            # tmp = f_PM(x=vec_x, n=n, J=J, g_factor=g)
+            tmp = f_PM_with_T(B=magnetic_field, n=n, J=J, T=temperature, g_factor=g)
             # fight with uncertainty in 0 vicinity:
-            # tmp[self.zeroIndex] = 0
+            if zero_index is not None:
+                tmp[zero_index] = 0
             out += tmp
         return out
 
@@ -491,7 +493,7 @@ class StructBase:
 
         self.forFit_y = self.for_fit.magnetic_moment
         len_of_vec = len(self.forFit_y)
-        self.forFit_x = np.zeros(len_of_vec)
+        self.forFit_x = self.for_fit.magnetic_field
 
         num = len(self.dict_of_magnetic_phases)
 
@@ -500,7 +502,9 @@ class StructBase:
         # construct tmp function for a minimization procedure:
         def fun_tmp(n_concentration):
             out = np.zeros(len_of_vec)
-            out = self.multi_phase_PM_func(n_concentration)
+            out = self.multi_phase_PM_func(n_concentration,
+                                           magnetic_field=self.forFit_x,
+                                           temperature=self.fit.temperature)
             return self.get_R_factor(raw=self.forFit_y, fit=out)
 
         # create bounds:
@@ -512,12 +516,21 @@ class StructBase:
 
         self.concentration_ParaMagnetic = res.x #[1/m^3*1e27]
         s2 = self.get_std(raw=self.forFit_y,
-                          fit=self.multi_phase_PM_func(self.concentration_ParaMagnetic))
-        se = approx_errors(fun_tmp, self.concentration_ParaMagnetic)
+                          fit=self.multi_phase_PM_func(self.concentration_ParaMagnetic,
+                                                       magnetic_field=self.forFit_x,
+                                                       temperature=self.fit.temperature
+                                                       )
+                          )
+        se = approx_errors(fun_tmp, self.concentration_ParaMagnetic, epsilon=0.01*np.min(self.concentration_ParaMagnetic))
         std = np.sqrt(s2) * se
         self.concentration_ParaMagnetic_error = std
 
-        self.fit.magnetic_moment = self.multi_phase_PM_func(self.concentration_ParaMagnetic)
+        self.fit.magnetic_moment = self.multi_phase_PM_func(
+            self.concentration_ParaMagnetic,
+            magnetic_field=self.fit.magnetic_field,
+            temperature=self.fit.temperature,
+            zero_index=self.zeroIndex
+        )
         # fight with uncertainty in 0 vicinity:
         # self.fit.magnetic_moment[self.zeroIndex] = 0
 
@@ -525,7 +538,7 @@ class StructBase:
 
         # write label for plotting:
         self.fit.label = \
-            '\nfit [$R=\\mathbf{{{R:1.3}}}\%$, $\sigma=\\mathbf{{{std:1.3}}}$], T={temper:2.1g}K\n '.format(
+            '\nFit [$R=\\mathbf{{{R:1.3}}}\%$, $\sigma=\\mathbf{{{std:1.3}}}$], T={temper:2.1g}K\n\n'.format(
                 R=float(self.R_factor),
                 std=float(self.std),
                 temper=float(self.fit.temperature),
@@ -539,7 +552,7 @@ class StructBase:
             g = val['data'].g_factor
             Mn_type = val['data'].Mn_type
             spin_type = val['data'].spin_type_cfg
-            tmp_txt = 'phase {num_of_phase:}:\n'\
+            tmp_txt += 'phase $\\mathbf{{{num_of_phase:}}}$:\n'\
             '$g_{{factor}}=\\mathbf{{{g_f:1.3}}}$, $J({Mn_type}$, ${spin_type})=\\mathbf{{{J:1.3}}}$ $[\mu_{{Bohr}}]$'\
                 .format(
                 num_of_phase = i,
@@ -558,17 +571,35 @@ class StructBase:
                 )
 
         self.fit.label += tmp_txt
+        print('==='*15)
+        print('    fit PM (multi PM phases) have been done. '
+              'For T = {0} K obtained:' \
+              .format(self.raw.temperature,)
+              )
+        print('    R = {R_f:1.5g} %'.format(R_f=self.R_factor))
 
-        # print('->> fit PM (single PM phase) have been done. '
-        #       'For T = {0} K obtained n = {1:1.3g} *1e27 [1/m^3] or {2:1.3g} % of the n(GaAs)' \
-        #       .format(self.raw.temperature,
-        #               self.concentration_ParaMagnetic,
-        #               self.concentration_ParaMagnetic / 22.139136 * 100))
-        # print('->> R = {R_f:1.5g} %'.format(R_f=self.R_factor))
-        # print('->> J[{Mn_type}, {spin_type}] = {J:1.3} [mu(Bohr)]'.format(
-        #     Mn_type=self.Mn_type,
-        #     spin_type=self.spin_type_cfg,
-        #     J=float(self.J_total_momentum)))
+        for i in self.dict_of_magnetic_phases:
+            val = self.dict_of_magnetic_phases[i]
+            n = self.concentration_ParaMagnetic[i]
+            n_std = self.concentration_ParaMagnetic_error[i]
+            J = val['data'].J_total_momentum
+            g = val['data'].g_factor
+            Mn_type = val['data'].Mn_type
+            spin_type = val['data'].spin_type_cfg
+            print('-------   phases #{}:'.format(i))
+            print(' n = ( {n:1.3g} +/- {err:1.4g} )*1e27 [1/m^3] or {n_2:1.3g} % of the n(GaAs)'.format(
+                          n=n,
+                          n_2=n / 22.139136 * 100,
+                          err=n_std
+                        )
+                 )
+
+            print(' J[{Mn_type}, {spin_type}] = {J:1.3} [mu(Bohr)]'.format(
+                Mn_type=Mn_type,
+                spin_type=spin_type,
+                J=float(J)))
+
+        print('===' * 15)
 
     def set_default_line_params(self):
         self.raw.line_style = 'None'
@@ -645,10 +676,27 @@ class StructBase:
         return self.std
 
 
-class StructComplex:
+class StructComplex(StructBase):
     def __init__(self):
-        self.source = MagneticData()
+        super().__init__()
+        self.model_A = StructBase()
+        self.model_B = StructBase()
+
+    def set_global_Mn2_plus_high(self):
+        self.model_A.set_Mn2_plus_high()
+        self.model_B.set_Mn2_plus_high()
+
+    def set_global_Mn2_plus_low(self):
+        self.model_A.set_Mn2_plus_low()
+        self.model_B.set_Mn2_plus_low()
+
+    def set_global_Mn3_plus_low(self):
+        self.model_A.set_Mn3_plus_low()
+        self.model_B.set_Mn3_plus_low()
+
 
 
 if __name__ == '__main__':
+    tmp_obj = StructComplex()
+
     print('-> you run ', __file__, ' file in a main mode')

@@ -23,7 +23,8 @@ class ConcentrationOfMagneticIons:
 
         self.mass_kg = 0.0
         self.magnetic_moment_saturation_experiment = 0.0
-        self.how_many_Mn_in_percent = 2.3 #[%]
+        # self.how_many_Mn_in_percent = 2.3 #[%]
+        self.how_many_Mn_in_percent = 1.8 #[%]
         self.dataFolderSorceBase = '/home/yugin/VirtualboxShare/FEFF/Origin_Sawicki_measur (B180)'
         self.dataFolderSorce = 'B180v[s]m(H)-dia'
         self.ax = odict()
@@ -53,6 +54,9 @@ class ConcentrationOfMagneticIons:
         self.diff_PM_field_region_for_fit = np.array([[-6, -3], [3, 6]]) # [T]
 
         self.FM_field_region_for_fit = np.array([[-6, -2], [2, 6]]) # [T]
+
+        self.figure_name = ''
+        self.out_dir = ''
 
     def prepareData(self):
         # load and prepare data to the next calculation
@@ -118,7 +122,7 @@ class ConcentrationOfMagneticIons:
         self.ylabel_txt = 'M (A/m)'
         self.xlabel_txt = '$B (T)$'
 
-
+        # create figure and setup Axes
         self.setupAxes()
 
         indx = 0
@@ -195,30 +199,44 @@ class ConcentrationOfMagneticIons:
             current_phase = deepcopy(data.current_magnetic_phase_data)
             data.addDataToDict(current_phase)
 
+            self.figure_name = 'T={0:05.1f}K_single_phase_PM_fits'.format(data.fit.temperature)
+            self.save_figure()
+
+            data.title = 'Multi phase $Mn$ PM fit'
+            data.raw.do_plot = False
+            data.line.do_plot = False
+            data.magnetic_field_value_for_fit = 0.04
             data.fit_PM_multi_phase()
+            self.ax[0].clear()
+            data.plot(ax=self.ax[0])
+            self.figure_name = 'T={0:05.1f}K_multi_phase_PM_fits'.format(data.fit.temperature)
+            self.save_figure()
 
             self.struct_of_data[case_name[0]] = data
 
-            print('T = ', self.struct_of_data[case_name[0]].T, ' K')
+            print('T = ', self.struct_of_data[case_name[0]].fit.temperature, ' K')
+            self.clear_axes()
+
             indx = indx+1
 
-        sortKeys = sorted(self.struct_of_data, key=lambda key: self.struct_of_data[key].T)
-        for i in sortKeys:
-            self.ax.cla()
-            # struct_of_data[i].plotLogT(self.ax)
-            self.struct_of_data[i].plot(self.ax)
+        sortKeys = sorted(self.struct_of_data, key=lambda key: self.struct_of_data[key].fit.temperature)
+        print('')
+        # for i in sortKeys:
+        #     self.ax.cla()
+        #     # struct_of_data[i].plotLogT(self.ax)
+        #     self.struct_of_data[i].plot(self.ax)
+        #
+        #     self.ax.legend(shadow=True, fancybox=True, loc='upper left')
+        #     plt.draw()
+        #     # print(list(struct_of_data.items())[i])
 
-            self.ax.legend(shadow=True, fancybox=True, loc='upper left')
-            plt.draw()
-            # print(list(struct_of_data.items())[i])
-
-    def calc_diff_PM(self):
+    def calc_diff_PM_single_phase(self):
         if len(self.struct_of_data) > 1:
 
-            T1 = self.struct_of_data[self.diff_PM_keyName1].T
-            T2 = self.struct_of_data[self.diff_PM_keyName2].T
+            T1 = self.struct_of_data[self.diff_PM_keyName1].fit.temperature
+            T2 = self.struct_of_data[self.diff_PM_keyName2].fit.temperature
             def fun_diff(B, n):
-                return f_diff_PM_for_2_T (B, n, J=2.5, T1=T1, T2=T2)
+                return f_diff_PM_for_2_T (B, n, J=self.struct_of_data[self.diff_PM_keyName1].J_total_momentum, T1=T1, T2=T2)
 
 
             initial_guess = [0.01]
@@ -412,7 +430,7 @@ class ConcentrationOfMagneticIons:
     def calc_SPM_Langevin(self):
         # fit data by using a Langevin function:
         if self.n_diffPM <= 0:
-            self.calc_diff_PM()
+            self.calc_diff_PM_single_phase()
 
 
         T = self.struct_of_data[self.SPM_keyName].T
@@ -604,6 +622,14 @@ class ConcentrationOfMagneticIons:
         # out_file_name = '%s_' % (case) + "%05d.png" % (numOfIter)
         # fig.savefig(os.path.join(out_dir, out_file_name))
 
+    def clear_axes(self):
+        for i in range(len(self.ax)):
+            self.ax[i].clear()
+
+    def save_figure(self):
+        out_file_name = '{case}_{fig_name}.png'.format(case=self.selectCase, fig_name=self.figure_name)
+        self.fig.savefig(os.path.join(self.out_dir, out_file_name))
+
 
 if __name__ =='__main__':
     print ('-> you run ',  __file__, ' file in a main mode' )
@@ -645,13 +671,14 @@ if __name__ =='__main__':
     out_dir = os.path.join(out_dir, a.selectCase)
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
-
+    a.out_dir = out_dir
 
     a.prepareData()
+
     a.diff_PM_keyName1 = '2'
     a.diff_PM_keyName2 = '5'
     a.diff_PM_field_region_for_fit = np.array([[-6, -0.1], [0.1, 6]])  # [T]
-    a.calc_diff_PM()
+    a.calc_diff_PM_single_phase()
     # save to the PNG file:
     out_file_name = '%s' % (a.selectCase) + "_diff.png"
     a.fig.savefig(os.path.join(out_dir, out_file_name))
