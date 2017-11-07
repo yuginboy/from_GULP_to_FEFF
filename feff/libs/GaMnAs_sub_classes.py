@@ -717,13 +717,14 @@ class StructComplex(StructBase):
     def prepare_data_for_diff_calc(self):
         self.raw.magnetic_field = self.model_A.prepared_raw.magnetic_field[self.model_A.prepared_raw.accepted_indices]
         # for calculating diff_PM we need 2 different Temperature data for ex: m(T=2K) - m(T=5K)
+        # select only common points in two models:
         self.raw.magnetic_moment = \
             self.model_A.prepared_raw.magnetic_moment[self.model_A.prepared_raw.accepted_indices] - \
             self.model_B.prepared_raw.magnetic_moment[self.model_B.prepared_raw.accepted_indices]
 
         self.prepared_raw = deepcopy(self.raw)
 
-
+        # shift spectra to the center line:
         if len(self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field > 0)]) \
                 != \
                 len(self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field < 0)]):
