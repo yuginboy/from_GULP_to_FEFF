@@ -117,6 +117,8 @@ class MagneticData:
         self.temperature = []
         self.magnetic_field_shift = []
         self.magnetic_moment_shift = []
+        # for intersection of region for two models:
+        self.accepted_indices = []
         self.history_log = odict()
 
     def append_history_log(self, case=''):
@@ -693,6 +695,74 @@ class StructComplex(StructBase):
     def set_global_Mn3_plus_low(self):
         self.model_A.set_Mn3_plus_low()
         self.model_B.set_Mn3_plus_low()
+
+    def find_common_region_for_fit(self):
+        if len(self.model_A.prepared_raw.magnetic_field) != len(self.model_B.prepared_raw.magnetic_field):
+            print('len(T={T1}K)={L1} but len(T={T2}K)={L2}'.format(
+                T1=self.model_A.prepared_raw.temperature,
+                L1=len(self.model_A.prepared_raw.magnetic_field),
+                T2=self.model_B.prepared_raw.temperature,
+                L2=len(self.model_B.prepared_raw.magnetic_field)
+            ))
+
+        # Find the intersection of two arrays to avoid conflict with numbers of elements.
+        self.model_A.prepared_raw.accepted_indices = np.nonzero(
+            np.isin(self.model_A.prepared_raw.magnetic_field,
+                    self.model_B.prepared_raw.magnetic_field))
+
+        self.model_B.prepared_raw.accepted_indices = np.nonzero(
+            np.isin(self.model_B.prepared_raw.magnetic_field,
+                    self.model_A.prepared_raw.magnetic_field))
+
+    def prepare_data_for_diff_calc(self):
+        self.raw.magnetic_field = self.model_A.prepared_raw.magnetic_field[self.model_A.prepared_raw.accepted_indices]
+        # for calculating diff_PM we need 2 different Temperature data for ex: m(T=2K) - m(T=5K)
+        self.raw.magnetic_moment = \
+            self.model_A.prepared_raw.magnetic_moment[self.model_A.prepared_raw.accepted_indices] - \
+            self.model_B.prepared_raw.magnetic_moment[self.model_B.prepared_raw.accepted_indices]
+
+        self.prepared_raw = deepcopy(self.raw)
+
+
+        if len(self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field > 0)]) \
+                != \
+                len(self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field < 0)]):
+            # reduce a noise:
+            negVal = abs(np.min(self.prepared_raw.magnetic_field))
+            pozVal = np.max(self.prepared_raw.magnetic_field)
+
+            if pozVal >= negVal:
+                limitVal = negVal
+            else:
+                limitVal = pozVal
+
+            eps = 0.001 * abs(abs(self.prepared_raw.magnetic_field[0]) - abs(self.prepared_raw.magnetic_field[1]))
+            self.prepared_raw.magnetic_field = self.prepared_raw.magnetic_field[
+                np.logical_or((np.abs(self.prepared_raw.magnetic_field) <= limitVal + eps),
+                              (np.abs(self.prepared_raw.magnetic_field) <= eps))
+            ]
+
+            Mp = []
+            Mn = []
+            Mp = self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field > 0)]
+            Mn = self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field < 0)]
+
+        if len(self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field > 0)]) \
+                == \
+                len(self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field < 0)]):
+            # reduce a noise:
+            Mp = self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field > 0)]
+            Mn = self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field < 0)]
+
+        self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field > 0)] = \
+            0.5 * (Mp + np.abs(Mn[::-1]))
+        self.prepared_raw.magnetic_moment[np.where(self.prepared_raw.magnetic_field < 0)] = \
+            0.5 * (Mn - np.abs(Mp[::-1]))
+        # M_for_fit[(B > 0)] = 0.5*(Mp + np.abs(Mn))
+        # M_for_fit[(B < 0)] = 0.5*(Mn - np.abs(Mp))
+
+        self.for_fit = deepcopy(self.prepared_raw)
+        self.fit = deepcopy(self.prepared_raw)
 
 
 
