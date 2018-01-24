@@ -31,10 +31,10 @@ def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, par
 
     doWriteSCF = False
     doWriteXSF = False
-    doWriteXYZ = False
+    doWriteXYZ = True
     doWriteCFG = False
     doWriteRDF = False
-    doWriteFEFFinp = True
+    doWriteFEFFinp = False
 
     atomInSnapshot.rdfDist = vectForRDF
     atomInSnapshot.latCons = HO[0, 0]
