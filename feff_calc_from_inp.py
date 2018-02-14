@@ -14,6 +14,7 @@ from timeit import default_timer as timer
 import copy
 from settings import (
     path_to_exe,
+    use_Ram_disk,
     ram_disk_path,
 )
 
@@ -49,7 +50,7 @@ class FEFF_calculation_class():
         #        parameter (nphx = 21) before it was: nphx = 7
         self.path_to_feff_exe = path_to_exe
 
-        self.is_RAM_disk_exist = True
+        self.is_RAM_disk_exist = use_Ram_disk
         self.path_to_RAM_disk = ram_disk_path
 
     def get_working_dir(self):

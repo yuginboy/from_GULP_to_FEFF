@@ -6,4 +6,8 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 path_to_exe = 'wine /home/yugin/PycharmProjects/feff/exe/feff84_nclusx_175.exe'
 
 # set path to RAM manually
+use_Ram_disk = False
 ram_disk_path = r'/mnt/ramdisk/yugin/tmp'
+# Number of nodes for calculation
+
+node_number = 5

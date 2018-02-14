@@ -204,7 +204,9 @@ class FTR_gulp_to_feff_A_model(FTR_gulp_to_feff_A_model_base):
         f = open(txt_file_name, 'x')
         f.write(txt)
         print('Resulting information have been saved in: ', txt_file_name)
-        delete_all_subdirs_in_directory(outDirectoryForTowModelsFitResults)
+
+        # delete_all_subdirs_in_directory(outDirectoryForTowModelsFitResults)
+        delete_all_subdirs_in_directory(outDirectoryForModelsFitResults)
 
 
 if __name__ == '__main__':
@@ -231,7 +233,6 @@ if __name__ == '__main__':
     # for debug and profiling:
     a.saveDataToDisk = True
 
-    a.parallel_job_numbers = 10
 
     #  if you want to find the minimum from the all snapshots do this:
     a.findBestSnapshotsCombinationFrom_3_type_Models_parallel()

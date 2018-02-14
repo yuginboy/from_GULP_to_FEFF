@@ -5,6 +5,7 @@
 * Last modified: 2017-09-11
 '''
 from  feff_calc_from_inp import *
+from settings import node_number
 import pathos.multiprocessing as mp
 
 # for parallel calculation:
@@ -43,7 +44,7 @@ def one_thread_calculation(list_of_inp_files=[], dirNameInp='', dirNameOut=''):
 class FEFF_parallel_calculation_class(FEFF_calculation_class):
     def __init__(self):
         super().__init__()
-        self.parallel_job_numbers = 1
+        self.parallel_job_numbers = node_number
 
     def start_parallel_calculations(self):
         # do parallel routine of calculations:
