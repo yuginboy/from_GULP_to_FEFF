@@ -20,6 +20,7 @@ from matplotlib import pylab
 import matplotlib.gridspec as gridspec
 import numpy as np
 from feff.libs.determine_numbers_of_target_atoms import TargetAtom
+from settings import node_number
 
 import progressbar
 class Model_for_spectra():
@@ -242,7 +243,7 @@ class FTR_gulp_to_feff_A_model_base():
         self.do_FTR_from_linear_Chi_k_SpectraComposition = True
 
         self.saveDataToDisk = True
-        self.parallel_job_numbers = 2
+        self.parallel_job_numbers = node_number
 
         # method of path giving (by using GUI or Console):
         self.is_GUI = True

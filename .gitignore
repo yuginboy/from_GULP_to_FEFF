@@ -91,7 +91,9 @@ ENV/
 # Pycharm
 #.idea
 .idea/
+/.idea/
 idea/
 
 # feff exe (need a license for using)
 .exe
+*.exe

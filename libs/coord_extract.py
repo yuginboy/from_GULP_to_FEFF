@@ -12,11 +12,12 @@ from libs.classes import Unitcell
 from feff.mainFEFF import feffCalcFun
 from feff_calc_from_inp_parallel import FEFF_parallel_calculation_class
 from feff.libs.determine_numbers_of_target_atoms import TargetAtom
-from settings import ram_disk_path
+from settings import ram_disk_path, node_number
 
 limitNumOfSnapshots = 1e6
 
-def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile, parallel_job_numbers=5):
+def loadCoords(file, timestep, numOfAtoms, vectForRDF, HO, numOfLinesInFile,
+               parallel_job_numbers=node_number):
     '''
 
     :param file: .history
